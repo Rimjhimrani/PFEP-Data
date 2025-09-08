@@ -35,7 +35,8 @@ if 'vendor_data' not in st.session_state:
 
 def calculate_part_classification(value):
     """Calculate part classification based on ABC analysis"""
-    # This is a placeholder logic. Real logic would be based on consumption value percentage.
+    if pd.isna(value):
+        return 'C'
     if value >= 1000: return 'AA'
     elif value >= 500: return 'A'
     elif value >= 100: return 'B'
@@ -58,18 +59,9 @@ def calculate_rm_days(inventory_class):
     }
     return rm_days.get(inventory_class, 30)
 
-def get_family_keywords():
-    """Return predefined family keywords for location selection"""
-    return {
-        'Engine': ['engine', 'motor', 'piston'], 'Body': ['body', 'panel', 'door'],
-        'Electrical': ['wire', 'cable', 'connector'], 'Chassis': ['frame', 'axle', 'suspension'],
-        'Interior': ['seat', 'dashboard', 'trim']
-    }
-
 def generate_structured_excel(df):
     """
-    Generates a structured Excel file with merged headers and specific formatting
-    using the logic from the second script.
+    Generates a structured Excel file with merged headers and specific formatting.
     """
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -81,7 +73,6 @@ def generate_structured_excel(df):
     subheader_format_blue = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'fg_color': '#DCE6F1', 'border': 1})
 
     # --- DEFINE FINAL EXCEL COLUMN STRUCTURE ---
-    # This structure must be maintained for the headers to work correctly.
     all_columns = [
         'SR.NO', 'PARTNO', 'PART DESCRIPTION', 'Qty/Veh 1', 'Qty/Veh 2', 'TOTAL', 'UOM', 'ST.NO',
         'FAMILY', 'Qty/Veh 1_Daily', 'Qty/Veh 2_Daily', 'NET',
@@ -96,42 +87,44 @@ def generate_structured_excel(df):
         'NO OF SEC REQ. AS PER PF_Pithampur', 'DISTANCE CODE_Pithampur', 'INVENTORY CLASSIFICATION_Pithampur',
         'RM IN DAYS_Pithampur', 'RM IN QTY_Pithampur', 'RM IN INR_Pithampur','PACKING FACTOR (PF)_Pithampur', 'NO OF SEC. PACK REQD._Pithampur', 'NO OF SEC REQ. AS PER PF_Pithampur',
         'WH LOC', 'PRIMARY LOCATION ID', 'SECONDARY LOCATION ID', 'OVER FLOW TO BE ALLOTED', 'DOCK NUMBER', 'STACKING FACTOR',
-        'SUPPLY TYPE', 'SUPPLY VEH SET', 'SUPPLY STRATEGY', 'SUPPLY CONDITION', 'CONTAINER LINE SIDE',
-        'L-MM_Supply', 'W-MM_Supply', 'H-MM_Supply', 'Volume_Supply',
+        'SUPPLY TYPE', 'SUPPLY VEH SET', 'SUPPLY STRATEGY', 'SUPPLY CONDITION', 'PBOM_DRAG_BOX_QTY', 'MBOM_DRAG_BOX_QTY', # <-- ADDED NEW COLUMNS
+        'CONTAINER LINE SIDE', 'L-MM_Supply', 'W-MM_Supply', 'H-MM_Supply', 'Volume_Supply',
         'QTY/CONTAINER -LS -9M', 'QTY/CONTAINER -LS-12M', 'STORAGE LINE SIDE', 'L-MM_Line',
-        'W-MM_Line', 'H-MM_Line', 'Volume_Line', 'CONTAINER / RACK','NO OF TRIPS/DAY', 'INVENTORY LINE SIDE',
-        'DRAG BOX QTY' # Added based on user request
+        'W-MM_Line', 'H-MM_Line', 'Volume_Line', 'CONTAINER / RACK','NO OF TRIPS/DAY', 'INVENTORY LINE SIDE'
     ]
 
-    # --- DATA MAPPING ---
-    # Create a new DataFrame with the target structure and map data from the app's DataFrame.
     output_df = pd.DataFrame(columns=all_columns)
     
-    # Simple 1-to-1 mapping (assuming column names in uploaded files)
-    # This section will need to be adjusted based on the EXACT column names in your source files.
+    # --- DATA MAPPING ---
+    # This section maps columns from your application's DataFrame to the final Excel structure.
+    # Adjust the source_col ('Right Side') to match the column names in your uploaded files.
     mapping = {
         'PARTNO': 'Part_Number', 'PART DESCRIPTION': 'Description', 'TOTAL': 'Daily_Consumption',
         'UNIT PRICE': 'Unit_Price', 'PART CLASSIFICATION': 'Classification', 'VENDOR CODE': 'Vendor',
         'RM IN DAYS_Pune': 'RM_Days', 'RM IN QTY_Pune': 'RM_Qty', 'RM IN INR_Pune': 'RM_Value',
         'WH LOC': 'Storage_Location', 'SUPPLY TYPE': 'Supply_Type', 'CONTAINER LINE SIDE': 'Container_Type',
-        'ST.NO': 'Station_Number'
+        'ST.NO': 'Station_Number', 'NO OF TRIPS/DAY': 'Trips_Per_Day'
     }
 
     for target_col, source_col in mapping.items():
         if source_col in df.columns:
             output_df[target_col] = df[source_col]
 
-    # Add other data that might have been collected
     output_df['SR.NO'] = range(1, len(df) + 1)
-    if 'drag_box_qty' in st.session_state:
-        output_df['DRAG BOX QTY'] = st.session_state.drag_box_qty
+    
+    # Add the drag box quantities from session state
+    if 'pbom_drag_box_qty' in st.session_state:
+        output_df['PBOM_DRAG_BOX_QTY'] = st.session_state.pbom_drag_box_qty
+    if st.session_state.get('station_required') and 'mbom_drag_box_qty' in st.session_state:
+        output_df['MBOM_DRAG_BOX_QTY'] = st.session_state.mbom_drag_box_qty
+    else:
+        output_df['MBOM_DRAG_BOX_QTY'] = "N/A" # Fill with N/A if MBOM not used
 
-    # Write data to the Excel sheet
+    # Write data to the Excel sheet starting at the third row
     output_df.to_excel(writer, sheet_name='Master Data Sheet', startrow=2, header=False, index=False)
     worksheet = writer.sheets['Master Data Sheet']
 
     # --- WRITE MERGED HEADERS ---
-    # Row 1: Main Headers
     worksheet.merge_range('A1:H1', 'PART DETAILS', header_format_gray)
     worksheet.merge_range('I1:L1', 'Daily consumption', subheader_format_orange)
     worksheet.merge_range('M1:N1', 'PRICE & CLASSIFICATION', subheader_format_orange)
@@ -141,27 +134,24 @@ def generate_structured_excel(df):
     worksheet.merge_range('AP1:AW1', 'PUNE INVENTORY NORM', subheader_format_blue)
     worksheet.merge_range('AX1:BE1', 'PRITHAMPUR INVENTORY NORM', header_format_gray)
     worksheet.merge_range('BF1:BK1', 'WH STORAGE', subheader_format_orange)
-    worksheet.merge_range('BL1:BQ1', 'SUPPLY SYSTEM', subheader_format_blue) # Adjusted range for new column
-    worksheet.merge_range('BR1:CE1', 'LINE SIDE STORAGE', header_format_gray) # Adjusted range
+    worksheet.merge_range('BL1:BQ1', 'SUPPLY SYSTEM', subheader_format_blue) # <-- ADJUSTED RANGE
+    worksheet.merge_range('BR1:CF1', 'LINE SIDE STORAGE', header_format_gray) # <-- ADJUSTED RANGE
 
-    # Row 2: Column Headers
+    # Write individual column headers on the second row
     for col_num, value in enumerate(output_df.columns.values):
-        # Apply formatting based on column index
-        worksheet.write(1, col_num, value, header_format_gray) # Simplified formatting for example
+        worksheet.write(1, col_num, value, header_format_gray)
 
-    # Adjust column widths for better readability
-    worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:CE', 18)
+    # Adjust column widths
+    worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:CF', 18)
 
     writer.close()
     return output.getvalue()
-
 
 # --- Main Application UI ---
 def main():
     st.title("🏭 PFEP Automation Tool")
     st.markdown("---")
     
-    # Progress bar and navigation
     progress = st.session_state.current_step / 8
     st.progress(progress)
     st.write(f"Step {st.session_state.current_step} of 8")
@@ -169,39 +159,41 @@ def main():
     col1, col2, col3 = st.columns([1, 2, 1])
     if st.session_state.current_step > 1:
         if col1.button("← Previous"):
-            st.session_state.current_step -= 1
-            st.rerun()
-    
+            st.session_state.current_step -= 1; st.rerun()
     if st.session_state.current_step < 8:
         if col3.button("Next →"):
-            st.session_state.current_step += 1
-            st.rerun()
+            st.session_state.current_step += 1; st.rerun()
     
     # Step routing
-    if st.session_state.current_step == 1: step1_initial_setup()
-    elif st.session_state.current_step == 2: step2_upload_data()
-    elif st.session_state.current_step == 3: step3_product_configuration()
-    elif st.session_state.current_step == 4: step4_calculations()
-    elif st.session_state.current_step == 5: step5_storage_supply()
-    elif st.session_state.current_step == 6: step6_container_analysis()
-    elif st.session_state.current_step == 7: step7_visualization()
-    elif st.session_state.current_step == 8: step8_final_output()
+    steps = {1: step1_initial_setup, 2: step2_upload_data, 3: step3_product_configuration,
+             4: step4_calculations, 5: step5_storage_supply, 6: step6_container_analysis,
+             7: step7_visualization, 8: step8_final_output}
+    steps[st.session_state.current_step]()
 
 def step1_initial_setup():
     st.header("Step 1: Initial Setup")
     col1, col2 = st.columns(2)
+    
     with col1:
         st.subheader("Drag Box Configuration")
-        st.session_state.drag_box_qty = st.number_input("Drag Box Quantity", min_value=1, max_value=10, value=5)
+        # Separate inputs for PBOM and MBOM drag boxes
+        st.session_state.pbom_drag_box_qty = st.number_input(
+            "PBOM Drag Box Quantity", min_value=1, max_value=10, value=5, key="pbom_drag_qty"
+        )
+        if st.session_state.get('station_required'):
+            st.session_state.mbom_drag_box_qty = st.number_input(
+                "MBOM Drag Box Quantity", min_value=1, max_value=10, value=5, key="mbom_drag_qty"
+            )
+            
     with col2:
         st.subheader("Station Configuration")
-        st.session_state.station_required = st.checkbox("Station Number Required? (Requires MBOM upload)")
+        # This checkbox controls the visibility of MBOM uploads and MBOM drag box
+        st.checkbox("Station Number Required? (Requires MBOM upload)", key='station_required')
 
 def step2_upload_data():
     st.header("Step 2: Upload & Merge Data Files")
-    st.info("Upload PBOM first. Then, MBOM and Vendor data can be merged.")
-
-    # --- UPLOAD ---
+    st.info("Upload PBOM first. Then, MBOM and Vendor data can be merged based on a common column (e.g., Part Number).")
+    
     col1, col2 = st.columns(2)
     with col1:
         pbom_file = st.file_uploader("Upload PBOM (Product BOM)", type=['csv', 'xlsx'])
@@ -210,124 +202,78 @@ def step2_upload_data():
                 df = pd.read_excel(pbom_file) if pbom_file.name.endswith('.xlsx') else pd.read_csv(pbom_file)
                 st.session_state.pbom_data = df
                 st.session_state.pfep_df = df # Initialize the main DF
-                st.success(f"PBOM loaded with {len(df)} rows.")
+                st.success(f"PBOM loaded: {len(df)} rows.")
             except Exception as e: st.error(f"Error loading PBOM: {e}")
 
         if st.session_state.get('station_required'):
             mbom_file = st.file_uploader("Upload MBOM (Manufacturing BOM)", type=['csv', 'xlsx'])
             if mbom_file:
-                try:
-                    df = pd.read_excel(mbom_file) if mbom_file.name.endswith('.xlsx') else pd.read_csv(mbom_file)
-                    st.session_state.mbom_data = df
-                    st.success(f"MBOM loaded with {len(df)} rows.")
-                except Exception as e: st.error(f"Error loading MBOM: {e}")
-
+                st.session_state.mbom_data = pd.read_excel(mbom_file) if mbom_file.name.endswith('.xlsx') else pd.read_csv(mbom_file)
+                st.success(f"MBOM loaded: {len(st.session_state.mbom_data)} rows.")
+    
     with col2:
         vendor_file = st.file_uploader("Upload Vendor Data", type=['csv', 'xlsx'])
         if vendor_file:
-            try:
-                df = pd.read_excel(vendor_file) if vendor_file.name.endswith('.xlsx') else pd.read_csv(vendor_file)
-                st.session_state.vendor_data = df
-                st.success(f"Vendor data loaded with {len(df)} rows.")
-            except Exception as e: st.error(f"Error loading vendor data: {e}")
+            st.session_state.vendor_data = pd.read_excel(vendor_file) if vendor_file.name.endswith('.xlsx') else pd.read_csv(vendor_file)
+            st.success(f"Vendor data loaded: {len(st.session_state.vendor_data)} rows.")
 
-    # --- MERGE ---
     st.subheader("Merge Data")
     if not st.session_state.pfep_df.empty:
-        if not st.session_state.mbom_data.empty and st.session_state.station_required:
-            part_col = st.selectbox("Select Part Number column in PBOM/MBOM", options=st.session_state.pfep_df.columns)
-            if st.button("Merge MBOM"):
-                st.session_state.pfep_df = pd.merge(st.session_state.pfep_df, st.session_state.mbom_data, on=part_col, how='left')
-                st.success("MBOM data merged.")
-
-        if not st.session_state.vendor_data.empty:
-            part_col_pfep = st.selectbox("Select Part Number column in PFEP", options=st.session_state.pfep_df.columns, key='pfep_part')
-            vendor_col_vend = st.selectbox("Select Vendor Code column in Vendor Data", options=st.session_state.vendor_data.columns, key='vend_code')
-            if st.button("Merge Vendor Data"):
-                # A common scenario is PBOM having vendor code, not part number, for merging with vendor master
-                st.session_state.pfep_df = pd.merge(st.session_state.pfep_df, st.session_state.vendor_data, left_on=part_col_pfep, right_on=vendor_col_vend, how='left')
-                st.success("Vendor data merged.")
-
-    st.subheader("Current Merged Data")
+        key_col = st.selectbox("Select the common Part Number column for merging", options=st.session_state.pfep_df.columns)
+        
+        if st.button("Merge All Uploaded Data"):
+            df = st.session_state.pbom_data.copy()
+            if not st.session_state.mbom_data.empty and st.session_state.get('station_required'):
+                df = pd.merge(df, st.session_state.mbom_data, on=key_col, how='left', suffixes=('', '_mbom'))
+            if not st.session_state.vendor_data.empty:
+                df = pd.merge(df, st.session_state.vendor_data, on=key_col, how='left', suffixes=('', '_vendor'))
+            st.session_state.pfep_df = df
+            st.success("All data sources have been merged.")
+            
     st.dataframe(st.session_state.pfep_df.head())
 
 def step3_product_configuration():
+    # Placeholder for future configuration options
     st.header("Step 3: Product Configuration")
-    if st.session_state.pfep_df.empty:
-        st.warning("Please upload and merge data in Step 2.")
-        return
-    
-    st.info("This step helps define parameters for calculations in the next step.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Daily Consumption Setup")
-        st.session_state.daily_vehicles_1 = st.number_input("Daily Production (Veh 1)", min_value=1, value=50)
-        st.session_state.daily_vehicles_2 = st.number_input("Daily Production (Veh 2)", min_value=0, value=50)
-        
-    with col2:
-        st.subheader("Part Classification")
-        st.write("Part classification will be calculated based on consumption value.")
-        st.write("Example: AA (>1000), A (>500), B (>100), C (<100)")
-        
+    st.info("This step is for defining calculation parameters. Proceed to the next step to run calculations.")
+    st.session_state.daily_vehicles_1 = st.number_input("Daily Production Volume", min_value=1, value=100)
+
 def step4_calculations():
     st.header("Step 4: PFEP Calculations")
-    if st.session_state.pfep_df.empty:
-        st.warning("No data to calculate. Please complete previous steps.")
-        return
+    if st.session_state.pfep_df.empty: return st.warning("Please upload and merge data in Step 2.")
 
-    df = st.session_state.pfep_df.copy() # Work on a copy
+    df = st.session_state.pfep_df.copy()
     
-    # Column selection for calculations
     st.subheader("Select Columns for Calculation")
-    col1, col2, col3 = st.columns(3)
-    qty_per_veh_col = col1.selectbox("Quantity Per Vehicle Column", df.columns)
-    unit_price_col = col2.selectbox("Unit Price Column", df.columns)
+    col1, col2 = st.columns(2)
+    qty_per_veh_col = col1.selectbox("Quantity Per Vehicle Column", df.columns, index=df.columns.get_loc(df.columns[1]) if len(df.columns) > 1 else 0)
+    unit_price_col = col2.selectbox("Unit Price Column", df.columns, index=df.columns.get_loc(df.columns[2]) if len(df.columns) > 2 else 0)
     
-    if st.button("Run Calculations"):
-        # 1. Daily Consumption
-        df['Daily_Consumption'] = df[qty_per_veh_col] * (st.session_state.daily_vehicles_1 + st.session_state.daily_vehicles_2)
-        
-        # 2. Consumption Value
-        df['Consumption_Value'] = df['Daily_Consumption'] * df[unit_price_col]
-
-        # 3. Part Classification
+    if st.button("Run PFEP Calculations"):
+        df['Daily_Consumption'] = pd.to_numeric(df[qty_per_veh_col], errors='coerce') * st.session_state.daily_vehicles_1
+        df['Consumption_Value'] = df['Daily_Consumption'] * pd.to_numeric(df[unit_price_col], errors='coerce')
         df['Classification'] = df['Consumption_Value'].apply(calculate_part_classification)
-
-        # 4. Inventory Classification
         df['Inventory_Class'] = df['Classification'].apply(get_inventory_classification)
-
-        # 5. RM Days
         df['RM_Days'] = df['Inventory_Class'].apply(calculate_rm_days)
-
-        # 6. RM Qty & Value
         df['RM_Qty'] = df['Daily_Consumption'] * df['RM_Days']
-        df['RM_Value'] = df[unit_price_col] * df['RM_Qty']
-        
-        # Save back to session state
+        df['RM_Value'] = pd.to_numeric(df[unit_price_col], errors='coerce') * df['RM_Qty']
         st.session_state.pfep_df = df
         st.success("Calculations completed!")
 
-    st.subheader("Calculation Results Preview")
     st.dataframe(st.session_state.pfep_df.head())
 
 def step5_storage_supply():
-    st.header("Step 5: Storage & Supply Configuration")
-    if st.session_state.pfep_df.empty:
-        st.warning("No data found. Please complete previous steps.")
-        return
+    st.header("Step 5: Storage & Supply Configuration (Apply to All)")
+    if st.session_state.pfep_df.empty: return st.warning("No data found.")
         
-    st.info("Assign storage and supply parameters to all parts in the dataset.")
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Storage")
         storage_loc = st.selectbox("Primary Storage Location", ['HRR', 'CRL', 'MEZ'])
     with col2:
-        st.subheader("Supply")
         supply_type = st.selectbox("Supply Type", ['Direct', 'KIT trolley', 'Repacking'])
         container_type = st.selectbox("Container Type", ['Trolley', 'Bin', 'Rack'])
     
-    if st.button("Apply Configuration"):
+    if st.button("Apply Global Configuration"):
         df = st.session_state.pfep_df.copy()
         df['Storage_Location'] = storage_loc
         df['Supply_Type'] = supply_type
@@ -338,32 +284,23 @@ def step5_storage_supply():
     st.dataframe(st.session_state.pfep_df.head())
 
 def step6_container_analysis():
-    st.header("Step 6: Container & Trip Analysis")
-    st.info("This is a placeholder for more detailed container and logistics calculations.")
-    
+    st.header("Step 6: Trip Analysis")
     trips_per_day = st.number_input("Default Number of Trips per Day", min_value=1, value=4)
     if st.button("Apply Trip Info"):
-        df = st.session_state.pfep_df.copy()
-        df['Trips_Per_Day'] = trips_per_day
-        st.session_state.pfep_df = df
+        st.session_state.pfep_df['Trips_Per_Day'] = trips_per_day
         st.success("Trip information applied.")
     st.dataframe(st.session_state.pfep_df.head())
 
-
 def step7_visualization():
     st.header("Step 7: Visualization & Analysis")
-    if st.session_state.pfep_df.empty or 'Classification' not in st.session_state.pfep_df.columns:
-        st.warning("No data to visualize. Please run calculations in Step 4.")
-        return
-
-    df = st.session_state.pfep_df
+    if 'Classification' not in st.session_state.pfep_df.columns:
+        return st.warning("No data to visualize. Please run calculations in Step 4.")
     
-    st.subheader("Part Classification Analysis")
+    df = st.session_state.pfep_df
     col1, col2 = st.columns(2)
     with col1:
         class_counts = df['Classification'].value_counts().reset_index()
-        class_counts.columns = ['Classification', 'Count']
-        fig1 = px.pie(class_counts, values='Count', names='Classification', title='Part Count by Classification')
+        fig1 = px.pie(class_counts, values='count', names='Classification', title='Part Count by Classification')
         st.plotly_chart(fig1, use_container_width=True)
     with col2:
         class_value = df.groupby('Classification')['RM_Value'].sum().reset_index()
@@ -372,30 +309,19 @@ def step7_visualization():
 
 def step8_final_output():
     st.header("Step 8: Final PFEP Output")
-    if st.session_state.pfep_df.empty:
-        st.warning("No final PFEP data to display or download.")
-        return
+    if st.session_state.pfep_df.empty: return st.warning("No PFEP data to download.")
 
-    st.subheader("Final PFEP Data Preview")
     st.dataframe(st.session_state.pfep_df)
-
-    st.subheader("Download Generated PFEP")
     
-    # Use the new function to generate the structured excel file in memory
     excel_data = generate_structured_excel(st.session_state.pfep_df)
-    
     st.download_button(
-        label="📊 Download PFEP Excel (Structured)",
-        data=excel_data,
+        label="📊 Download PFEP Excel (Structured)", data=excel_data,
         file_name="PFEP_Structured_Output.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-    st.info("The downloaded Excel file contains the multi-level headers and structure as specified.")
     
     if st.button("🔄 Reset Application"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
+        for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
 
 if __name__ == "__main__":
