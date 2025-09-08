@@ -30,7 +30,6 @@ def initialize_session_state():
 initialize_session_state()
 
 # --- HELPER FUNCTIONS ---
-# (Helper functions for calculations and Excel generation remain the same)
 def generate_structured_excel(df):
     """Generates a structured Excel file with merged headers and specific formatting."""
     output = BytesIO()
@@ -90,22 +89,29 @@ def generate_structured_excel(df):
 
     return output.getvalue()
 
-
 # --- STREAMLIT UI STEPS ---
 def step1_initial_setup():
     st.header("Step 1: Initial Setup")
+    st.info("Configure the number of BOM files you intend to upload in the next step.")
+    
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Drag Box Configuration")
+        st.subheader("PBOM Configuration")
         st.number_input(
             "How many PBOM files will you upload?",
-            min_value=1, max_value=20, key="pbom_drag_box_qty"
+            min_value=1, max_value=20, key="pbom_drag_box_qty",
+            help="Set this to the total number of PBOM files you need to combine."
         )
-        st.checkbox("Do you have MBOM files to upload?", key='station_required')
+        
+    with col2:
+        st.subheader("MBOM Configuration")
+        st.checkbox("Do you have MBOM files to upload?", key='station_required',
+                    help="Select this if you need to upload and merge MBOM data.")
         if st.session_state.station_required:
             st.number_input(
                 "How many MBOM files will you upload?",
-                min_value=1, max_value=20, key="mbom_drag_box_qty"
+                min_value=1, max_value=20, key="mbom_drag_box_qty",
+                help="Set this to the total number of MBOM files you need to combine."
             )
 
 def step2_upload_data():
@@ -113,129 +119,129 @@ def step2_upload_data():
 
     # --- SUB-STEP 2.1: UPLOAD AND COMBINE BOM FILES ---
     st.subheader("Sub-step 2.1: Upload and Combine BOM Files")
-    col1, col2 = st.columns(2)
+    
+    # Define columns for layout
+    if st.session_state.station_required:
+        col1, col2 = st.columns(2)
+    else:
+        # If MBOM is not needed, create a single column layout
+        col1 = st
+        col2 = None
+
+    # PBOM Upload Section
     with col1:
         st.info(f"Please upload your {st.session_state.pbom_drag_box_qty} PBOM file(s).")
         with st.container(height=300):
             for i in range(1, st.session_state.pbom_drag_box_qty + 1):
                 st.file_uploader(f"PBOM File {i}", type=['csv', 'xlsx'], key=f"pbom_file_{i}")
-        if st.button("Combine PBOM Files"):
+        
+        if st.button("Combine All PBOM Files"):
             pbom_dfs = []
             for i in range(1, st.session_state.pbom_drag_box_qty + 1):
-                f = st.session_state.get(f"pbom_file_{i}")
-                if f:
-                    df = pd.read_excel(f) if f.name.endswith('.xlsx') else pd.read_csv(f)
+                uploaded_file = st.session_state.get(f"pbom_file_{i}")
+                if uploaded_file:
+                    df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
                     pbom_dfs.append(df)
+            
             if pbom_dfs:
                 st.session_state.pbom_data = pd.concat(pbom_dfs, ignore_index=True)
-                st.success(f"Combined {len(pbom_dfs)} PBOM files into a single table with {len(st.session_state.pbom_data)} rows.")
+                st.success(f"Combined {len(pbom_dfs)} PBOM files into a table with {len(st.session_state.pbom_data)} rows.")
+                st.dataframe(st.session_state.pbom_data.head())
             else:
-                st.warning("No PBOM files were uploaded.")
+                st.warning("No PBOM files were uploaded to combine.")
     
-    if st.session_state.station_required:
+    # MBOM Upload Section (only appears if the checkbox in Step 1 is selected)
+    if st.session_state.station_required and col2:
         with col2:
             st.info(f"Please upload your {st.session_state.mbom_drag_box_qty} MBOM file(s).")
             with st.container(height=300):
                 for i in range(1, st.session_state.mbom_drag_box_qty + 1):
                     st.file_uploader(f"MBOM File {i}", type=['csv', 'xlsx'], key=f"mbom_file_{i}")
-            if st.button("Combine MBOM Files"):
+            
+            if st.button("Combine All MBOM Files"):
                 mbom_dfs = []
                 for i in range(1, st.session_state.mbom_drag_box_qty + 1):
-                    f = st.session_state.get(f"mbom_file_{i}")
-                    if f:
-                        df = pd.read_excel(f) if f.name.endswith('.xlsx') else pd.read_csv(f)
+                    uploaded_file = st.session_state.get(f"mbom_file_{i}")
+                    if uploaded_file:
+                        df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
                         mbom_dfs.append(df)
+                
                 if mbom_dfs:
                     st.session_state.mbom_data = pd.concat(mbom_dfs, ignore_index=True)
-                    st.success(f"Combined {len(mbom_dfs)} MBOM files into a single table with {len(st.session_state.mbom_data)} rows.")
+                    st.success(f"Combined {len(mbom_dfs)} MBOM files into a table with {len(st.session_state.mbom_data)} rows.")
+                    st.dataframe(st.session_state.mbom_data.head())
                 else:
-                    st.warning("No MBOM files were uploaded.")
+                    st.warning("No MBOM files were uploaded to combine.")
+    
     st.markdown("---")
 
     # --- SUB-STEP 2.2: CREATE UNIQUE PART MASTER ---
     if not st.session_state.pbom_data.empty:
         st.subheader("Sub-step 2.2: Create Unique Part Master List")
-        key_col = st.selectbox(
-            "Select the common Part Number column for merging BOMs",
-            options=st.session_state.pbom_data.columns
-        )
-        if st.button("Merge BOMs and Find Unique Parts", type="primary"):
-            df = st.session_state.pbom_data
-            if not st.session_state.mbom_data.empty:
-                df = pd.concat([st.session_state.pbom_data, st.session_state.mbom_data], ignore_index=True)
+        
+        mbom_ready = (st.session_state.station_required and not st.session_state.mbom_data.empty) or not st.session_state.station_required
+        
+        if not mbom_ready:
+            st.warning("Please combine your MBOM files before creating the master list.")
+        else:
+            key_col = st.selectbox(
+                "Select the common Part Number column for merging BOMs",
+                options=st.session_state.pbom_data.columns
+            )
             
-            # Drop duplicates based on the selected part number column
-            initial_rows = len(df)
-            df.drop_duplicates(subset=[key_col], inplace=True)
-            final_rows = len(df)
-            st.session_state.pfep_df = df
-            st.success(f"Merged BOMs. Found {final_rows} unique parts from an initial {initial_rows} total rows.")
-            st.dataframe(st.session_state.pfep_df.head())
+            if st.button("Merge BOMs and Find Unique Parts", type="primary"):
+                combined_df = st.session_state.pbom_data
+                if not st.session_state.mbom_data.empty:
+                    combined_df = pd.concat([st.session_state.pbom_data, st.session_state.mbom_data], ignore_index=True)
+                
+                initial_rows = len(combined_df)
+                unique_df = combined_df.drop_duplicates(subset=[key_col], keep='first').copy()
+                final_rows = len(unique_df)
+                
+                st.session_state.pfep_df = unique_df
+                st.success(f"Merged BOMs. Found {final_rows} unique parts from an initial {initial_rows} total rows.")
+                st.dataframe(st.session_state.pfep_df.head())
+        
         st.markdown("---")
 
     # --- SUB-STEP 2.3: MERGE VENDOR DATA ---
     if not st.session_state.pfep_df.empty:
         st.subheader("Sub-step 2.3: Upload and Merge Vendor Data")
         vendor_file = st.file_uploader("Upload Vendor Master File", type=['csv', 'xlsx'], key="vendor_file")
+        
         if vendor_file:
             st.session_state.vendor_data = pd.read_excel(vendor_file) if vendor_file.name.endswith('.xlsx') else pd.read_csv(vendor_file)
             st.write("Vendor Data Preview:")
             st.dataframe(st.session_state.vendor_data.head())
             
-            vendor_key_col = st.selectbox(
-                "Select the Part Number column in your Vendor File",
-                options=st.session_state.vendor_data.columns
-            )
+            master_key_col = st.selectbox("Select Part Number column in your Master List", options=st.session_state.pfep_df.columns)
+            vendor_key_col = st.selectbox("Select Part Number column in your Vendor File", options=st.session_state.vendor_data.columns)
+            
             if st.button("Merge Vendor Data", type="primary"):
-                # Use the same key_col selected for BOM merge
-                st.session_state.pfep_df = pd.merge(
-                    st.session_state.pfep_df,
-                    st.session_state.vendor_data,
-                    left_on=key_col,
-                    right_on=vendor_key_col,
-                    how='left',
-                    suffixes=('', '_vendor')
-                )
-                st.success("Successfully merged vendor data with the unique parts master list.")
-                st.subheader("Final Merged Data Preview")
+                st.session_state.pfep_df = pd.merge(st.session_state.pfep_df, st.session_state.vendor_data,
+                                                    left_on=master_key_col, right_on=vendor_key_col, how='left', suffixes=('', '_vendor'))
+                st.success("Successfully merged vendor data.")
                 st.dataframe(st.session_state.pfep_df.head())
 
-# --- OTHER STEPS (Calculations, Visualization, Output) ---
-# These remain largely the same, operating on the final 'pfep_df'
+# (Other steps like step4_calculations and step8_final_output remain the same)
 def step4_calculations():
     st.header("Step 4: PFEP Calculations")
-    if st.session_state.pfep_df.empty: return st.warning("Please complete the data merging process in Step 2.")
-    
-    df = st.session_state.pfep_df.copy()
-    st.subheader("Select Columns for Calculation")
-    columns = list(df.columns)
-    col1, col2 = st.columns(2)
-    # Simple logic to guess the correct columns, user can override
-    qty_col_index = next((i for i, col in enumerate(columns) if 'qty' in col.lower()), 1)
-    price_col_index = next((i for i, col in enumerate(columns) if 'price' in col.lower()), 2)
-    
-    qty_col = col1.selectbox("Quantity Per Vehicle Column", columns, index=qty_col_index)
-    price_col = col2.selectbox("Unit Price Column", columns, index=price_col_index)
-    daily_prod = st.number_input("Daily Production Volume", min_value=1, value=100)
-    
-    if st.button("Run PFEP Calculations", type="primary"):
-        # Your calculation logic here...
-        st.session_state.pfep_df = df # Update with calculated data
-        st.success("Calculations completed!")
-    st.dataframe(st.session_state.pfep_df.head())
+    if st.session_state.pfep_df.empty: 
+        st.warning("Please complete the data merging process in Step 2.")
+        return
+    st.info("This is a placeholder for your calculation logic.")
 
 
 def step8_final_output():
     st.header("Step 8: Final PFEP Output")
-    if st.session_state.pfep_df.empty: return st.warning("No PFEP data to download.")
-    
+    if st.session_state.pfep_df.empty: 
+        st.warning("No PFEP data to download.")
+        return
     st.dataframe(st.session_state.pfep_df)
     excel_data = generate_structured_excel(st.session_state.pfep_df)
-    st.download_button(
-        label="📊 Download PFEP Excel (Structured)", data=excel_data,
-        file_name="PFEP_Structured_Output.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    st.download_button(label="📊 Download PFEP Excel (Structured)", data=excel_data,
+                        file_name="PFEP_Structured_Output.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     if st.button("🔄 Reset Application"):
         st.session_state.clear(); st.rerun()
 
@@ -244,11 +250,10 @@ def main():
     st.title("🏭 PFEP Automation Tool")
     st.markdown("---")
     
-    progress = st.session_state.current_step / 8
-    st.progress(progress)
+    st.progress(st.session_state.current_step / 8)
     st.write(f"Step {st.session_state.current_step} of 8")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, _, col3 = st.columns([1, 8, 1])
     if st.session_state.current_step > 1:
         if col1.button("← Previous"):
             st.session_state.current_step -= 1; st.rerun()
@@ -256,16 +261,11 @@ def main():
         if col3.button("Next →"):
             st.session_state.current_step += 1; st.rerun()
     
-    # Simplified step routing
     steps = {
-        1: step1_initial_setup,
-        2: step2_upload_data,
-        3: lambda: st.header("Step 3: Configuration (Proceed to Next Step)"),
-        4: step4_calculations,
-        5: lambda: st.header("Step 5: Storage (Proceed to Next Step)"),
-        6: lambda: st.header("Step 6: Analysis (Proceed to Next Step)"),
-        7: lambda: st.header("Step 7: Visualization (TBD)"),
-        8: step8_final_output,
+        1: step1_initial_setup, 2: step2_upload_data,
+        3: lambda: st.header("Step 3: Placeholder"), 4: step4_calculations,
+        5: lambda: st.header("Step 5: Placeholder"), 6: lambda: st.header("Step 6: Placeholder"),
+        7: lambda: st.header("Step 7: Placeholder"), 8: step8_final_output,
     }
     steps[st.session_state.current_step]()
 
