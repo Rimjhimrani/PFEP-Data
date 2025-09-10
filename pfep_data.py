@@ -8,6 +8,88 @@ import math
 import re
 import io
 
+# --- CACHED FUNCTIONS (MOVED TO TOP) ---
+# Moved here to prevent tokenize.TokenError from inspect.getsource()
+# which is used by the caching decorator.
+
+@st.cache_data
+def get_lat_lon(_geolocator, pincode, country="India", city="", state="", retries=3, backoff_factor=2):
+    pincode_str = str(pincode).strip().split('.')[0]
+    if not pincode_str.isdigit() or int(pincode_str) == 0:
+        return (None, None)
+
+    query = f"{pincode_str}, {country}"
+    if city and state:
+        query = f"{pincode_str}, {city}, {state}, {country}"
+
+    for attempt in range(retries):
+        try:
+            time.sleep(1) # Adhere to Nominatim's usage policy
+            location = _geolocator.geocode(query, timeout=10)
+            if location:
+                return (location.latitude, location.longitude)
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(backoff_factor * (attempt + 1))
+            continue
+    return (None, None)
+
+@st.cache_data
+def create_formatted_excel_output(_df):
+    output = io.BytesIO()
+    final_df = _df.copy().loc[:, ~_df.columns.duplicated()]
+    # Map internal names to final PFEP names
+    enhanced_map = {
+        'part_id': 'PARTNO', 'description': 'PART DESCRIPTION', 'qty_veh_1': 'Qty/Veh 1',
+        'qty_veh_2': 'Qty/Veh 2', 'total_qty': 'TOTAL', 'qty_veh_1_daily': 'Qty/Veh 1_Daily',
+        'qty_veh_2_daily': 'Qty/Veh 2_Daily', 'net_daily_consumption': 'NET',
+        'unit_price': 'UNIT PRICE', 'vendor_code': 'VENDOR CODE', 'vendor_name': 'VENDOR NAME',
+        'city': 'CITY', 'state': 'STATE', 'country': 'COUNTRY', 'pincode': 'PINCODE',
+        'length': 'L-MM_Size', 'width': 'W-MM_Size', 'height': 'H-MM_Size',
+        'qty_per_pack': 'QTY/PACK_Sec', 'packing_factor': 'PACKING FACTOR (PF)',
+        'family': 'FAMILY', 'part_classification': 'PART CLASSIFICATION',
+        'volume_m3': 'Volume (m^3)', 'size_classification': 'SIZE CLASSIFICATION',
+        'wh_loc': 'WH LOC', 'inventory_classification': 'INVENTORY CLASSIFICATION'
+    }
+
+    # Rename columns that exist in the dataframe
+    final_df.rename(columns={k: v for k, v in enhanced_map.items() if k in final_df.columns}, inplace=True)
+
+    # Add any missing template columns with blank values
+    for col in [c for c in ALL_TEMPLATE_COLUMNS if c not in final_df.columns]:
+        final_df[col] = ''
+
+    # Ensure the column order matches the template
+    final_df = final_df[ALL_TEMPLATE_COLUMNS]
+    final_df['SR.NO'] = range(1, len(final_df) + 1)
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        workbook = writer.book
+        h_gray = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'top', 'align': 'center', 'fg_color': '#D9D9D9', 'border': 1})
+        s_orange = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'fg_color': '#FDE9D9', 'border': 1})
+        s_blue = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'fg_color': '#DCE6F1', 'border': 1})
+
+        final_df.to_excel(writer, sheet_name='Master Data Sheet', startrow=2, header=False, index=False)
+        worksheet = writer.sheets['Master Data Sheet']
+
+        worksheet.merge_range('A1:H1', 'PART DETAILS', h_gray)
+        worksheet.merge_range('I1:L1', 'Daily consumption', s_orange)
+        worksheet.merge_range('M1:N1', 'PRICE & CLASSIFICATION', s_orange)
+        worksheet.merge_range('O1:S1', 'Size & Classification', s_orange)
+        worksheet.merge_range('T1:Z1', 'VENDOR DETAILS', s_blue)
+        worksheet.merge_range('AA1:AO1', 'PACKAGING DETAILS', s_orange)
+        worksheet.merge_range('AP1:AW1', 'INVENTORY NORM', s_blue)
+        worksheet.merge_range('AX1:BD1', 'WH STORAGE', s_orange)
+        worksheet.merge_range('BE1:BH1', 'SUPPLY SYSTEM', s_blue)
+        worksheet.merge_range('BI1:BW1', 'LINE SIDE STORAGE', h_gray)
+
+        for col_num, value in enumerate(final_df.columns):
+            worksheet.write(1, col_num, value, h_gray)
+        worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:BW', 18)
+
+    return output.getvalue()
+
+
 # --- CUSTOM CSS FOR MODERN DESIGN ---
 def load_custom_css():
     st.markdown("""
@@ -391,27 +473,6 @@ WAREHOUSE_LOCATION_FULL_FORMS = {
 
 
 # --- DISTANCE CALCULATION COMPONENTS ---
-@st.cache_data
-def get_lat_lon(_geolocator, pincode, country="India", city="", state="", retries=3, backoff_factor=2):
-    pincode_str = str(pincode).strip().split('.')[0]
-    if not pincode_str.isdigit() or int(pincode_str) == 0:
-        return (None, None)
-
-    query = f"{pincode_str}, {country}"
-    if city and state:
-        query = f"{pincode_str}, {city}, {state}, {country}"
-
-    for attempt in range(retries):
-        try:
-            time.sleep(1)
-            location = _geolocator.geocode(query, timeout=10)
-            if location:
-                return (location.latitude, location.longitude)
-        except Exception as e:
-            if attempt < retries - 1:
-                time.sleep(backoff_factor * (attempt + 1))
-            continue
-    return (None, None)
 
 def get_distance_code(distance):
     if pd.isna(distance): return None
@@ -685,61 +746,8 @@ class ComprehensiveInventoryProcessor:
         self.data['wh_loc'] = self.data.apply(get_wh_loc, axis=1)
 
 
-# --- 5. FINAL EXCEL REPORT GENERATION ---
-@st.cache_data
-def create_formatted_excel_output(_df):
-    output = io.BytesIO()
-    final_df = _df.copy().loc[:, ~_df.columns.duplicated()]
-    # Map internal names to final PFEP names
-    enhanced_map = {
-        'part_id': 'PARTNO', 'description': 'PART DESCRIPTION', 'qty_veh_1': 'Qty/Veh 1',
-        'qty_veh_2': 'Qty/Veh 2', 'total_qty': 'TOTAL', 'qty_veh_1_daily': 'Qty/Veh 1_Daily',
-        'qty_veh_2_daily': 'Qty/Veh 2_Daily', 'net_daily_consumption': 'NET',
-        'unit_price': 'UNIT PRICE', 'vendor_code': 'VENDOR CODE', 'vendor_name': 'VENDOR NAME',
-        'city': 'CITY', 'state': 'STATE', 'country': 'COUNTRY', 'pincode': 'PINCODE',
-        'length': 'L-MM_Size', 'width': 'W-MM_Size', 'height': 'H-MM_Size',
-        'qty_per_pack': 'QTY/PACK_Sec', 'packing_factor': 'PACKING FACTOR (PF)',
-        'family': 'FAMILY', 'part_classification': 'PART CLASSIFICATION',
-        'volume_m3': 'Volume (m^3)', 'size_classification': 'SIZE CLASSIFICATION',
-        'wh_loc': 'WH LOC', 'inventory_classification': 'INVENTORY CLASSIFICATION'
-    }
-    
-    # Rename columns that exist in the dataframe
-    final_df.rename(columns={k: v for k, v in enhanced_map.items() if k in final_df.columns}, inplace=True)
-    
-    # Add any missing template columns with blank values
-    for col in [c for c in ALL_TEMPLATE_COLUMNS if c not in final_df.columns]:
-        final_df[col] = ''
-        
-    # Ensure the column order matches the template
-    final_df = final_df[ALL_TEMPLATE_COLUMNS]
-    final_df['SR.NO'] = range(1, len(final_df) + 1)
-    
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        workbook = writer.book
-        h_gray = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'top', 'align': 'center', 'fg_color': '#D9D9D9', 'border': 1})
-        s_orange = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'fg_color': '#FDE9D9', 'border': 1})
-        s_blue = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'fg_color': '#DCE6F1', 'border': 1})
-        
-        final_df.to_excel(writer, sheet_name='Master Data Sheet', startrow=2, header=False, index=False)
-        worksheet = writer.sheets['Master Data Sheet']
-        
-        worksheet.merge_range('A1:H1', 'PART DETAILS', h_gray)
-        worksheet.merge_range('I1:L1', 'Daily consumption', s_orange)
-        worksheet.merge_range('M1:N1', 'PRICE & CLASSIFICATION', s_orange)
-        worksheet.merge_range('O1:S1', 'Size & Classification', s_orange)
-        worksheet.merge_range('T1:Z1', 'VENDOR DETAILS', s_blue)
-        worksheet.merge_range('AA1:AO1', 'PACKAGING DETAILS', s_orange)
-        worksheet.merge_range('AP1:AW1', 'INVENTORY NORM', s_blue)
-        worksheet.merge_range('AX1:BD1', 'WH STORAGE', s_orange)
-        worksheet.merge_range('BE1:BH1', 'SUPPLY SYSTEM', s_blue)
-        worksheet.merge_range('BI1:BW1', 'LINE SIDE STORAGE', h_gray)
-
-        for col_num, value in enumerate(final_df.columns):
-            worksheet.write(1, col_num, value, h_gray)
-        worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:BW', 18)
-    
-    return output.getvalue()
+# --- 5. FINAL EXCEL REPORT GENERATION (DECORATOR MOVED) ---
+# The function definition is now at the top of the file.
 
 # --- 6. STREAMLIT UI WITH ENHANCED DESIGN ---
 def create_status_badge(status, text):
@@ -792,7 +800,7 @@ def manual_review_step(df, internal_key, step_name):
         )
     
     with col2:
-        uploaded_file = st.file_uploader(f"📤 Upload Modified '{step_name}' File", 
+        uploaded_file = st.file_uploader(f"📤 Upload Modified '{step_name}' File",
                                        type=['csv'], key=f"uploader_{internal_key}",
                                        help="Upload your modified CSV file")
     
@@ -815,8 +823,8 @@ def manual_review_step(df, internal_key, step_name):
 
 def main():
     st.set_page_config(
-        layout="wide", 
-        page_title="PFEP Analyser", 
+        layout="wide",
+        page_title="PFEP Analyser",
         page_icon="🏭",
         initial_sidebar_state="collapsed"
     )
@@ -853,9 +861,9 @@ def main():
         with col1:
             st.markdown("### 📊 PBOM Files")
             st.markdown('<div class="upload-area">', unsafe_allow_html=True)
-            pbom_files = st.file_uploader("Upload Production BOM files", 
-                                        accept_multiple_files=True, 
-                                        type=['csv', 'xlsx'], 
+            pbom_files = st.file_uploader("Upload Production BOM files",
+                                        accept_multiple_files=True,
+                                        type=['csv', 'xlsx'],
                                         key='pbom',
                                         help="Upload your Production Bill of Materials")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -863,9 +871,9 @@ def main():
         with col2:
             st.markdown("### 🔧 MBOM Files")
             st.markdown('<div class="upload-area">', unsafe_allow_html=True)
-            mbom_files = st.file_uploader("Upload Manufacturing BOM files", 
-                                        accept_multiple_files=True, 
-                                        type=['csv', 'xlsx'], 
+            mbom_files = st.file_uploader("Upload Manufacturing BOM files",
+                                        accept_multiple_files=True,
+                                        type=['csv', 'xlsx'],
                                         key='mbom',
                                         help="Upload your Manufacturing Bill of Materials")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -873,8 +881,8 @@ def main():
         with col3:
             st.markdown("### 🏪 Vendor Master")
             st.markdown('<div class="upload-area">', unsafe_allow_html=True)
-            vendor_file = st.file_uploader("Upload Vendor Master file", 
-                                         type=['csv', 'xlsx'], 
+            vendor_file = st.file_uploader("Upload Vendor Master file",
+                                         type=['csv', 'xlsx'],
                                          key='vendor',
                                          help="Upload your vendor database")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -884,11 +892,11 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
-            daily_mult_1 = st.number_input("🚗 Daily Production - Vehicle Type 1", 
+            daily_mult_1 = st.number_input("🚗 Daily Production - Vehicle Type 1",
                                          min_value=0.0, value=1.0, step=0.1,
                                          help="Enter daily production quantity for first vehicle type")
         with col2:
-            daily_mult_2 = st.number_input("🚙 Daily Production - Vehicle Type 2", 
+            daily_mult_2 = st.number_input("🚙 Daily Production - Vehicle Type 2",
                                          min_value=0.0, value=1.0, step=0.1,
                                          help="Enter daily production quantity for second vehicle type")
 
@@ -1045,8 +1053,8 @@ def main():
         
         col1, col2 = st.columns([2, 1])
         with col1:
-            current_pincode = st.text_input("📍 Your Location Pincode", 
-                                          value="411001", 
+            current_pincode = st.text_input("📍 Your Location Pincode",
+                                          value="411001",
                                           help="Enter your facility pincode for distance calculations")
         with col2:
             st.markdown("<br>", unsafe_allow_html=True)  # Spacing
