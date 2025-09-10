@@ -583,84 +583,176 @@ def show_upload_page():
     
     # Vendor Master File
     st.subheader("Step 2: Upload Vendor Master")
+    st.markdown("Upload your vendor master file containing vendor details, locations, and pricing information")
     vendor_file = st.file_uploader(
-        "Upload Vendor Master file", 
+        "Choose Vendor Master file", 
         type=['csv', 'xlsx', 'xls'],
-        key="vendor_file"
+        key="vendor_file",
+        help="This file should contain vendor information like codes, names, locations, pincodes, etc."
     )
+    
+    if vendor_file:
+        st.success(f"✅ Vendor file selected: {vendor_file.name}")
     
     # Daily Consumption Parameters
     st.subheader("Step 3: Daily Consumption Parameters")
+    st.markdown("Enter the daily production quantities for different vehicle types to calculate daily consumption")
+    
     col1, col2 = st.columns(2)
     with col1:
-        daily_qty_1 = st.number_input("Daily production quantity for Vehicle Type 1:", value=1.0, min_value=0.0)
+        daily_qty_1 = st.number_input(
+            "Daily production quantity for Vehicle Type 1:", 
+            value=1.0, 
+            min_value=0.0, 
+            step=0.1,
+            help="Enter the number of Vehicle Type 1 produced per day"
+        )
     with col2:
-        daily_qty_2 = st.number_input("Daily production quantity for Vehicle Type 2:", value=1.0, min_value=0.0)
+        daily_qty_2 = st.number_input(
+            "Daily production quantity for Vehicle Type 2:", 
+            value=1.0, 
+            min_value=0.0, 
+            step=0.1,
+            help="Enter the number of Vehicle Type 2 produced per day"
+        )
+    
+    if daily_qty_1 != 1.0 or daily_qty_2 != 1.0:
+        st.info(f"📈 Daily consumption will be calculated as: Qty/Veh × Daily Production Quantity")
+        st.write(f"   • Vehicle Type 1: Qty/Veh × {daily_qty_1}")
+        st.write(f"   • Vehicle Type 2: Qty/Veh × {daily_qty_2}")
     
     # Location Settings
     st.subheader("Step 4: Location Settings")
-    current_pincode = st.text_input("Enter your current pincode for distance calculation:", value="411001")
+    st.markdown("Enter your facility's pincode to calculate distances to vendor locations")
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        current_pincode = st.text_input(
+            "Enter your current pincode for distance calculation:", 
+            value="411001",
+            help="This will be used to calculate distances to all vendor locations"
+        )
+    with col2:
+        if current_pincode:
+            st.info(f"📍 Using pincode: **{current_pincode}**")
+    
+    # Validation before processing
+    st.subheader("Step 5: Process Data")
+    
+    # Check if minimum requirements are met
+    can_process = (pbom_files or mbom_files) and current_pincode
+    
+    if not (pbom_files or mbom_files):
+        st.error("❌ Please upload at least one BOM file (PBOM or MBOM) to proceed.")
+    elif not current_pincode:
+        st.error("❌ Please enter a pincode for distance calculations.")
+    else:
+        st.success("✅ All required data provided. Ready to process!")
+        
+        # Show processing summary
+        with st.expander("📋 Processing Summary", expanded=True):
+            st.markdown("**Files to be processed:**")
+            if pbom_files:
+                st.write(f"• **{len(pbom_files)} PBOM file(s)**")
+            if mbom_files:
+                st.write(f"• **{len(mbom_files)} MBOM file(s)**")
+            if vendor_file:
+                st.write(f"• **1 Vendor Master file**")
+            
+            st.markdown("**Processing steps:**")
+            st.write("1. 🏷️ Family Classification")
+            st.write("2. 📏 Size Classification") 
+            st.write("3. 💰 Part Classification (ABC Analysis)")
+            st.write("4. 📍 Distance Calculation & Inventory Norms")
+            st.write("5. 🏪 Warehouse Location Assignment")
+            
+            st.markdown("**Configuration:**")
+            st.write(f"• Daily Qty Vehicle 1: {daily_qty_1}")
+            st.write(f"• Daily Qty Vehicle 2: {daily_qty_2}")
+            st.write(f"• Current Location Pincode: {current_pincode}")
     
     # Process Button
-    if st.button("🚀 Start Processing", type="primary"):
-        if not pbom_files and not mbom_files:
-            st.error("Please upload at least one BOM file to proceed.")
-            return
-        
+    if st.button("🚀 Start Processing", type="primary", disabled=not can_process):
         try:
+            # Initialize progress tracking
+            st.markdown("---")
+            st.subheader("🔄 Processing Status")
+            
             # Process uploaded files
             all_boms = []
             file_counter = 0
             
-            # Process PBOM files
-            for file in pbom_files:
-                df = read_uploaded_file(file)
-                if df is not None:
-                    file_counter += 1
-                    df, has_part_id = find_and_rename_columns(df)
-                    if has_part_id:
-                        all_boms.append(df)
-                        st.success(f"✅ Added {len(df)} records from PBOM file: {file.name}")
-                    else:
-                        st.warning(f"⚠️ Part ID not found in {file.name}. Skipping file.")
-            
-            # Process MBOM files
-            for i, file in enumerate(mbom_files):
-                df = read_uploaded_file(file)
-                if df is not None:
-                    file_counter += 1
-                    df, has_part_id = find_and_rename_columns(df, i + 1)
-                    if has_part_id:
-                        all_boms.append(df)
-                        st.success(f"✅ Added {len(df)} records from MBOM file: {file.name}")
-                    else:
-                        st.warning(f"⚠️ Part ID not found in {file.name}. Skipping file.")
+            with st.spinner("Reading and validating uploaded files..."):
+                # Process PBOM files
+                if pbom_files:
+                    st.write("**Processing PBOM files:**")
+                    for i, file in enumerate(pbom_files, 1):
+                        with st.spinner(f"Processing PBOM file {i}/{len(pbom_files)}: {file.name}"):
+                            df = read_uploaded_file(file)
+                            if df is not None:
+                                file_counter += 1
+                                df, has_part_id = find_and_rename_columns(df)
+                                if has_part_id:
+                                    all_boms.append(df)
+                                    st.success(f"✅ PBOM {i}: Added {len(df)} records from '{file.name}'")
+                                else:
+                                    st.warning(f"⚠️ PBOM {i}: Part ID column not found in '{file.name}'. Skipping file.")
+                            else:
+                                st.error(f"❌ PBOM {i}: Failed to read '{file.name}'")
+                
+                # Process MBOM files
+                if mbom_files:
+                    st.write("**Processing MBOM files:**")
+                    for i, file in enumerate(mbom_files, 1):
+                        with st.spinner(f"Processing MBOM file {i}/{len(mbom_files)}: {file.name}"):
+                            df = read_uploaded_file(file)
+                            if df is not None:
+                                file_counter += 1
+                                # Pass the file number for MBOM files to handle different vehicle types
+                                df, has_part_id = find_and_rename_columns(df, i)
+                                if has_part_id:
+                                    all_boms.append(df)
+                                    st.success(f"✅ MBOM {i}: Added {len(df)} records from '{file.name}'")
+                                else:
+                                    st.warning(f"⚠️ MBOM {i}: Part ID column not found in '{file.name}'. Skipping file.")
+                            else:
+                                st.error(f"❌ MBOM {i}: Failed to read '{file.name}'")
             
             if not all_boms:
-                st.error("❌ No valid BOM data loaded. Cannot proceed.")
+                st.error("❌ No valid BOM data loaded from any file. Cannot proceed.")
                 return
             
+            st.success(f"✅ Successfully loaded {len(all_boms)} BOM files with data")
+            
             # Consolidate data
-            with st.spinner("Consolidating BOM data..."):
+            with st.spinner("Consolidating BOM data from multiple files..."):
                 master_bom = consolidate_boms(all_boms)
                 master_bom = process_qty_columns(master_bom, daily_qty_1, daily_qty_2)
+                st.success(f"✅ Consolidated data: {len(master_bom)} unique parts")
             
             # Process vendor data
             if vendor_file:
-                with st.spinner("Processing vendor data..."):
+                with st.spinner("Processing and merging vendor data..."):
                     vendor_df = read_uploaded_file(vendor_file)
                     if vendor_df is not None:
                         vendor_df, has_part_id = find_and_rename_columns(vendor_df)
                         if has_part_id:
+                            before_merge = len(master_bom)
                             master_bom = merge_vendor_data(master_bom, vendor_df)
-                            st.success("✅ Vendor data successfully merged.")
+                            st.success(f"✅ Vendor data merged successfully. Records: {before_merge} → {len(master_bom)}")
                         else:
-                            st.warning("⚠️ Part ID not found in vendor file. Cannot merge.")
+                            st.warning("⚠️ Part ID not found in vendor file. Cannot merge vendor data.")
+                    else:
+                        st.error("❌ Failed to read vendor file.")
             
             # Initialize processor
             processor = ComprehensiveInventoryProcessor(master_bom)
             
-            # Run processing steps
+            # Show processing progress
+            st.markdown("---")
+            st.subheader("📊 Data Processing Steps")
+            
+            # Create a progress tracking container
             progress_container = st.container()
             
             with progress_container:
