@@ -386,39 +386,35 @@ class ComprehensiveInventoryProcessor:
         current_coords = get_lat_lon(current_pincode, country="India")
         if current_coords == (None, None):
             return [None] * len(self.data)
-        
         for col in ['pincode', 'city', 'state']:
             if col not in self.data.columns:
                 self.data[col] = ''
-        
         distances = []
         distance_codes = []
-        
         progress_bar = st.progress(0)
         status_text = st.empty()
-        
+    
         total_vendors = len(self.data)
-        
-        for idx, row in self.data.iterrows():
-            progress = (idx + 1) / total_vendors
+    
+        # Use enumerate instead of iterrows to get sequential counter
+        for counter, (idx, row) in enumerate(self.data.iterrows()):
+            progress = (counter + 1) / total_vendors  # Use counter instead of idx
             progress_bar.progress(progress)
-            status_text.text(f"Processing vendor locations... {idx + 1}/{total_vendors}")
-            
+            status_text.text(f"Processing vendor locations... {counter + 1}/{total_vendors}")
             vendor_pincode = row.get('pincode', '')
             pincode_str = str(vendor_pincode).strip().split('.')[0]
-            
+        
             if not pincode_str or pincode_str.lower() in ['nan', 'none', 'na', 'n/a', '0']:
                 distances.append(None)
                 distance_codes.append(None)
                 continue
-            
             vendor_coords = get_lat_lon(
                 pincode_str, 
                 country="India", 
                 city=str(row.get('city', '')).strip(), 
                 state=str(row.get('state', '')).strip()
             )
-            
+        
             if vendor_coords == (None, None):
                 distances.append(None)
                 distance_codes.append(None)
@@ -430,10 +426,9 @@ class ComprehensiveInventoryProcessor:
                 except Exception:
                     distances.append(None)
                     distance_codes.append(None)
-        
         progress_bar.empty()
         status_text.empty()
-        
+
         return distance_codes
     
     def run_location_based_norms(self, location_name, pincode):
