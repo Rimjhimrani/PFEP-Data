@@ -440,7 +440,7 @@ def manual_review_step(df, internal_key, step_name):
 
 def main():
     st.set_page_config(layout="wide", page_title="Inventory & Supply Chain Analysis")
-    st.title("🏭 COMPREHENSIVE INVENTORY & SUPPLY CHAIN ANALYSIS SYSTEM 🏭")
+    st.title("🏭 PFEP (Plan For Each Part) Analyser")
 
     if 'processor' not in st.session_state:
         st.session_state.processor = None
