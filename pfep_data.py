@@ -612,7 +612,7 @@ def main():
     with st.expander("📁 Upload Files & Set Parameters", expanded=True):
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("##### 📊 Production BOM Files (PBOM)")
+            st.markdown("##### 📊 Procurement BOM Files (PBOM)")
             pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
         with col2:
             st.markdown("##### 🔧 Manufacturing BOM Files (MBOM)")
