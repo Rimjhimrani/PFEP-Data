@@ -396,8 +396,7 @@ def create_formatted_excel_output(_df):
         worksheet.merge_range('AP1:AW1', 'INVENTORY NORM', s_blue)
         worksheet.merge_range('AX1:BD1', 'WH STORAGE', s_orange)
         worksheet.merge_range('BE1:BH1', 'SUPPLY SYSTEM', s_blue)
-        worksheet.merge_range('BI1:BV1', 'LINE SIDE STORAGE', h_gray)
-        worksheet.write('BW1', ALL_TEMPLATE_COLUMNS[-1], h_gray)
+        worksheet.merge_range('BI1:BW1', 'LINE SIDE STORAGE', h_gray)
 
         for col_num, value in enumerate(final_df.columns): worksheet.write(1, col_num, value, h_gray)
         worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:BW', 18)
