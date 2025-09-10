@@ -1,6 +1,11 @@
 streamlit
 pandas
 numpy
-plotly
-xlsxwriter
+geopy
 openpyxl
+xlsxwriter
+plotly
+python-dateutil
+pytz
+fastparquet
+xlrd
