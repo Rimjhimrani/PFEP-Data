@@ -10,7 +10,6 @@ import io
 
 # --- 1. MASTER TEMPLATE AND LOGIC CONSTANTS ---
 
-# MODIFIED: Removed all 'Pithampur' related columns
 ALL_TEMPLATE_COLUMNS = [
     'SR.NO', 'PARTNO', 'PART DESCRIPTION', 'Qty/Veh 1', 'Qty/Veh 2', 'TOTAL', 'UOM', 'ST.NO',
     'FAMILY', 'Qty/Veh 1_Daily', 'Qty/Veh 2_Daily', 'NET', 'UNIT PRICE', 'PART CLASSIFICATION',
@@ -307,7 +306,6 @@ class ComprehensiveInventoryProcessor:
             if col not in self.data.columns: self.data[col] = ''
 
         total_vendors = len(self.data)
-        # FIX: Use enumerate to get a reliable counter 'i'
         for i, (idx, row) in enumerate(self.data.iterrows()):
             pincode_str = str(row.get('pincode', '')).strip().split('.')[0]
             if not pincode_str or not pincode_str.isdigit() or int(pincode_str) == 0:
@@ -324,10 +322,8 @@ class ComprehensiveInventoryProcessor:
                 except Exception:
                     distances.append(None); distance_codes.append(None)
 
-            # FIX: Use the new counter 'i' for the progress calculation
             progress = (i + 1) / total_vendors
             progress_bar.progress(progress)
-            # FIX: Use the new counter 'i' for the status text
             status_text.text(f"Processing vendor locations: {i + 1}/{total_vendors}")
 
         status_text.text("Distance calculation complete.")
@@ -499,7 +495,9 @@ def main():
                 with st.spinner("Running..."):
                     processor.run_family_classification()
                     st.success("✅ Automated family classification complete.")
-            st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
+            # FIX: Only show review if the column exists
+            if 'family' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
         
         with st.container(border=True):
             st.subheader("(2/6) Size Classification")
@@ -507,7 +505,9 @@ def main():
                 with st.spinner("Running..."):
                     processor.run_size_classification()
                     st.success("✅ Automated size classification complete.")
-            st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
+            # FIX: Only show review if the column exists
+            if 'size_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
 
         with st.container(border=True):
             st.subheader("(3/6) Part Classification (Percentage-Based)")
@@ -519,7 +519,9 @@ def main():
                     for class_name, info in processor.classifier.calculated_ranges.items():
                         if info['min'] is not None:
                             st.metric(label=f"{class_name} Class ({info['count']} parts)", value=f"₹{info['min']:,.2f} to ₹{info['max']:,.2f}")
-            st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
+            # FIX: Only show review if the column exists
+            if 'part_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
 
         with st.container(border=True):
             st.subheader("(4/6) Distance & Inventory Norms")
@@ -528,7 +530,9 @@ def main():
                 with st.spinner("Calculating distances and inventory norms... This may take a while."):
                     processor.run_location_based_norms("Pune", current_pincode)
                     st.success(f"✅ Inventory norms calculated for location.")
-            st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
+            # FIX: Only show review if the column exists (THIS IS THE LINE THAT CRASHED)
+            if 'inventory_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
 
         with st.container(border=True):
             st.subheader("(5/6) Warehouse Location Assignment")
@@ -536,7 +540,9 @@ def main():
                 with st.spinner("Running..."):
                     processor.run_warehouse_location_assignment()
                     st.success("✅ Automated warehouse location assignment complete.")
-            st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
+            # FIX: Only show review if the column exists
+            if 'wh_loc' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
 
         # (Step 6/6) Final Report Generation
         st.header("--- (6/6) FINAL REPORT ---")
