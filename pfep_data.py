@@ -8,6 +8,318 @@ import math
 import re
 import io
 
+# --- CUSTOM CSS FOR MODERN DESIGN ---
+def load_custom_css():
+    st.markdown("""
+    <style>
+    /* Import modern fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    /* Main app styling */
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Main container with glass effect */
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 1rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Header styling */
+    .main-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .main-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .main-subtitle {
+        font-size: 1.2rem;
+        color: #666;
+        font-weight: 300;
+        margin-bottom: 2rem;
+    }
+
+    /* Step cards */
+    .step-card {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .step-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 16px 16px 0 0;
+    }
+
+    .step-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.25);
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .step-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* Upload area styling */
+    .upload-area {
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+        border: 2px dashed #667eea;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin: 1rem 0;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 100%);
+        border-color: #764ba2;
+    }
+
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Success button variant */
+    .success-button {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    /* Process button variant */
+    .process-button {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    /* Download button variant */
+    .download-button {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3) !important;
+    }
+
+    /* Metric cards */
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Progress styling */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 10px;
+    }
+
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Alert styling */
+    .stAlert {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dataframe styling */
+    .stDataFrame {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Input styling */
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+
+    .stTextInput > div > div > input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Number input styling */
+    .stNumberInput > div > div > input {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+
+    .stNumberInput > div > div > input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* File uploader styling */
+    .stFileUploader {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 2px dashed #cbd5e1;
+    }
+
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    /* Status indicators */
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin: 0.25rem;
+    }
+
+    .status-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    /* Animation for loading */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+
+    .loading-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* Final report section */
+    .report-section {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    }
+
+    .report-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    /* Hide streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- 1. MASTER TEMPLATE AND LOGIC CONSTANTS ---
 
 ALL_TEMPLATE_COLUMNS = [
@@ -247,6 +559,12 @@ class PartClassificationSystem:
             range_info = self.calculated_ranges.get(class_name)
             if range_info and range_info['min'] is not None and range_info['min'] <= unit_price <= range_info['max']:
                 return class_name
+        # Fallback for prices outside defined ranges (can happen with rounding)
+        if self.calculated_ranges:
+            if unit_price > self.calculated_ranges.get('AA', {}).get('max', float('-inf')):
+                return 'AA'
+            if unit_price < self.calculated_ranges.get('C', {}).get('min', float('inf')):
+                return 'C'
         return 'Unclassified'
     def classify_all_parts(self):
         if not hasattr(self, 'parts_data'): return None
@@ -372,9 +690,28 @@ class ComprehensiveInventoryProcessor:
 def create_formatted_excel_output(_df):
     output = io.BytesIO()
     final_df = _df.copy().loc[:, ~_df.columns.duplicated()]
-    enhanced_map = {'qty_veh_1': 'Qty/Veh 1', 'qty_veh_2': 'Qty/Veh 2', 'total_qty': 'TOTAL', 'qty_veh_1_daily': 'Qty/Veh 1_Daily', 'qty_veh_2_daily': 'Qty/Veh 2_Daily', **PFEP_COLUMN_MAP, **INTERNAL_TO_PFEP_NEW_COLS, 'inventory_classification': 'INVENTORY CLASSIFICATION'}
+    # Map internal names to final PFEP names
+    enhanced_map = {
+        'part_id': 'PARTNO', 'description': 'PART DESCRIPTION', 'qty_veh_1': 'Qty/Veh 1',
+        'qty_veh_2': 'Qty/Veh 2', 'total_qty': 'TOTAL', 'qty_veh_1_daily': 'Qty/Veh 1_Daily',
+        'qty_veh_2_daily': 'Qty/Veh 2_Daily', 'net_daily_consumption': 'NET',
+        'unit_price': 'UNIT PRICE', 'vendor_code': 'VENDOR CODE', 'vendor_name': 'VENDOR NAME',
+        'city': 'CITY', 'state': 'STATE', 'country': 'COUNTRY', 'pincode': 'PINCODE',
+        'length': 'L-MM_Size', 'width': 'W-MM_Size', 'height': 'H-MM_Size',
+        'qty_per_pack': 'QTY/PACK_Sec', 'packing_factor': 'PACKING FACTOR (PF)',
+        'family': 'FAMILY', 'part_classification': 'PART CLASSIFICATION',
+        'volume_m3': 'Volume (m^3)', 'size_classification': 'SIZE CLASSIFICATION',
+        'wh_loc': 'WH LOC', 'inventory_classification': 'INVENTORY CLASSIFICATION'
+    }
+    
+    # Rename columns that exist in the dataframe
     final_df.rename(columns={k: v for k, v in enhanced_map.items() if k in final_df.columns}, inplace=True)
-    for col in [c for c in ALL_TEMPLATE_COLUMNS if c not in final_df.columns]: final_df[col] = ''
+    
+    # Add any missing template columns with blank values
+    for col in [c for c in ALL_TEMPLATE_COLUMNS if c not in final_df.columns]:
+        final_df[col] = ''
+        
+    # Ensure the column order matches the template
     final_df = final_df[ALL_TEMPLATE_COLUMNS]
     final_df['SR.NO'] = range(1, len(final_df) + 1)
     
@@ -398,29 +735,67 @@ def create_formatted_excel_output(_df):
         worksheet.merge_range('BE1:BH1', 'SUPPLY SYSTEM', s_blue)
         worksheet.merge_range('BI1:BW1', 'LINE SIDE STORAGE', h_gray)
 
-        for col_num, value in enumerate(final_df.columns): worksheet.write(1, col_num, value, h_gray)
+        for col_num, value in enumerate(final_df.columns):
+            worksheet.write(1, col_num, value, h_gray)
         worksheet.set_column('A:A', 6); worksheet.set_column('B:C', 22); worksheet.set_column('D:BW', 18)
     
     return output.getvalue()
 
-# --- 6. STREAMLIT UI ---
+# --- 6. STREAMLIT UI WITH ENHANCED DESIGN ---
+def create_status_badge(status, text):
+    """Create styled status badges"""
+    if status == "success":
+        return f'<span class="status-indicator status-success">✅ {text}</span>'
+    elif status == "warning":
+        return f'<span class="status-indicator status-warning">⚠️ {text}</span>'
+    elif status == "info":
+        return f'<span class="status-indicator status-info">ℹ️ {text}</span>'
+
+def create_step_card(icon, title, content):
+    """Create a styled step card"""
+    return f"""
+    <div class="step-card">
+        <div class="step-header">
+            <div class="step-icon">{icon}</div>
+            {title}
+        </div>
+        {content}
+    </div>
+    """
+
 def manual_review_step(df, internal_key, step_name):
-    st.subheader(f"Manual Review: {step_name}")
+    st.markdown(f"""
+    <div class="step-card">
+        <div class="step-header">
+            <div class="step-icon">🔍</div>
+            Manual Review: {step_name}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     pfep_name = INTERNAL_TO_PFEP_NEW_COLS.get(internal_key, PFEP_COLUMN_MAP.get(internal_key, internal_key))
     review_df = df[['part_id', 'description', internal_key]].copy()
     review_df.rename(columns={internal_key: pfep_name, 'part_id': 'PARTNO', 'description': 'PART DESCRIPTION'}, inplace=True)
     
-    st.dataframe(review_df.head(10)) # Display a preview
+    st.dataframe(review_df.head(10), use_container_width=True)
     
-    csv = review_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label=f"Download '{step_name}' file for review",
-        data=csv,
-        file_name=f"manual_review_{step_name.lower().replace(' ', '_')}.csv",
-        mime='text/csv',
-    )
+    col1, col2 = st.columns(2)
     
-    uploaded_file = st.file_uploader(f"Upload the modified '{step_name}' file (optional)", type=['csv'], key=f"uploader_{internal_key}")
+    with col1:
+        csv = review_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label=f"📥 Download '{step_name}' for Review",
+            data=csv,
+            file_name=f"manual_review_{step_name.lower().replace(' ', '_')}.csv",
+            mime='text/csv',
+            help="Download this file, make changes, and upload it back"
+        )
+    
+    with col2:
+        uploaded_file = st.file_uploader(f"📤 Upload Modified '{step_name}' File", 
+                                       type=['csv'], key=f"uploader_{internal_key}",
+                                       help="Upload your modified CSV file")
+    
     if uploaded_file:
         try:
             uploaded_df = pd.read_csv(uploaded_file)
@@ -428,136 +803,308 @@ def manual_review_step(df, internal_key, step_name):
                 uploaded_df.rename(columns={pfep_name: internal_key, 'PARTNO': 'part_id'}, inplace=True)
                 update_map = uploaded_df.set_index('part_id')[internal_key].to_dict()
                 df[internal_key] = df['part_id'].map(update_map).fillna(df[internal_key])
-                st.success(f"✅ Manual changes for {step_name} applied.")
+                st.success(f"✅ Manual changes for {step_name} applied successfully!")
+                st.balloons()
                 return df
             else:
-                st.error("Upload failed. Ensure the file contains 'PARTNO' and the specific classification column.")
+                st.error("❌ Upload failed. Ensure the file contains 'PARTNO' and the specific classification column.")
         except Exception as e:
-            st.error(f"Error processing uploaded file: {e}")
+            st.error(f"❌ Error processing uploaded file: {e}")
             
     return df
 
 def main():
-    st.set_page_config(layout="wide", page_title="Inventory & Supply Chain Analysis")
-    st.title("🏭 PFEP (Plan For Each Part) Analyser")
+    st.set_page_config(
+        layout="wide", 
+        page_title="PFEP Analyser", 
+        page_icon="🏭",
+        initial_sidebar_state="collapsed"
+    )
+    
+    # Load custom CSS
+    load_custom_css()
+    
+    # Main container
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    
+    # Header
+    st.markdown("""
+    <div class="main-header">
+        <h1 class="main-title">🏭 PFEP Analyser</h1>
+        <p class="main-subtitle">Plan For Each Part - Advanced Inventory & Supply Chain Analysis</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if 'processor' not in st.session_state:
         st.session_state.processor = None
+    if 'final_report' not in st.session_state:
+        st.session_state.final_report = None
+
 
     # --- Step 1: File Uploads and Initial Setup ---
-    with st.expander("STEP 1: Upload Data Files & Set Parameters", expanded=True):
+    st.markdown(create_step_card("1️⃣", "Data Upload & Configuration", """
+        <p>Upload your BOM files and configure daily production parameters</p>
+    """), unsafe_allow_html=True)
+    
+    with st.expander("📁 UPLOAD FILES & SET PARAMETERS", expanded=True):
+        # File upload columns with enhanced styling
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.subheader("📁 UPLOAD PBOM FILES")
-            pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
-        with col2:
-            st.subheader("📁 UPLOAD MBOM FILES")
-            mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
-        with col3:
-            st.subheader("🚚 UPLOAD VENDOR MASTER FILE")
-            vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
         
-        st.subheader("📊 DAILY CONSUMPTION CALCULATION")
-        d_col1, d_col2 = st.columns(2)
-        daily_mult_1 = d_col1.number_input("Enter daily production quantity for Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
-        daily_mult_2 = d_col2.number_input("Enter daily production quantity for Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
+        with col1:
+            st.markdown("### 📊 PBOM Files")
+            st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+            pbom_files = st.file_uploader("Upload Production BOM files", 
+                                        accept_multiple_files=True, 
+                                        type=['csv', 'xlsx'], 
+                                        key='pbom',
+                                        help="Upload your Production Bill of Materials")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown("### 🔧 MBOM Files")
+            st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+            mbom_files = st.file_uploader("Upload Manufacturing BOM files", 
+                                        accept_multiple_files=True, 
+                                        type=['csv', 'xlsx'], 
+                                        key='mbom',
+                                        help="Upload your Manufacturing Bill of Materials")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with col3:
+            st.markdown("### 🏪 Vendor Master")
+            st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+            vendor_file = st.file_uploader("Upload Vendor Master file", 
+                                         type=['csv', 'xlsx'], 
+                                         key='vendor',
+                                         help="Upload your vendor database")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("---")
+        st.markdown("### ⚙️ Production Configuration")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            daily_mult_1 = st.number_input("🚗 Daily Production - Vehicle Type 1", 
+                                         min_value=0.0, value=1.0, step=0.1,
+                                         help="Enter daily production quantity for first vehicle type")
+        with col2:
+            daily_mult_2 = st.number_input("🚙 Daily Production - Vehicle Type 2", 
+                                         min_value=0.0, value=1.0, step=0.1,
+                                         help="Enter daily production quantity for second vehicle type")
 
-    if st.button("▶️ Start Data Consolidation & Processing"):
+    # Enhanced start button
+    st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
+    if st.button("🚀 Start Data Consolidation & Processing", type="primary", use_container_width=True):
         if not pbom_files and not mbom_files:
-            st.error("No BOM data loaded. Please upload at least one PBOM or MBOM file.")
-            return
+            st.error("❌ No BOM data loaded. Please upload at least one PBOM or MBOM file.")
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.stop()
 
-        with st.spinner("Consolidating data... Please wait."):
+        with st.spinner("🔄 Consolidating data... Please wait."):
             bom_files = {"PBOM": pbom_files, "MBOM": mbom_files}
             master_df, logs = consolidate_data(bom_files, vendor_file, daily_mult_1, daily_mult_2)
             
-            st.info("Consolidation Log:")
+            # Enhanced log display
+            st.markdown("### 📋 Consolidation Log")
             for log in logs:
-                st.text(log)
+                if "✅" in log:
+                    st.success(log)
+                elif "⚠️" in log:
+                    st.warning(log)
+                elif "❌" in log:
+                    st.error(log)
+                else:
+                    st.info(log)
 
             if master_df is not None:
-                st.success("✅ Data consolidation complete!")
+                st.success("🎉 Data consolidation complete!")
                 st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
-                st.dataframe(master_df.head())
+                
+                # Display data preview with metrics
+                st.markdown("### 📊 Consolidated Data Preview")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-value">{len(master_df):,}</div>
+                        <div class="metric-label">Total Parts</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    unique_vendors = master_df['vendor_name'].nunique() if 'vendor_name' in master_df.columns else 0
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-value">{unique_vendors:,}</div>
+                        <div class="metric-label">Unique Vendors</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col3:
+                    total_value = master_df['unit_price'].sum() if 'unit_price' in master_df.columns and pd.api.types.is_numeric_dtype(master_df['unit_price']) else 0
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-value">₹{total_value:,.0f}</div>
+                        <div class="metric-label">Total Value</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col4:
+                    files_processed = len([f for files in [pbom_files, mbom_files] for f in files if f]) + (1 if vendor_file else 0)
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-value">{files_processed}</div>
+                        <div class="metric-label">Files Processed</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.dataframe(master_df.head(10), use_container_width=True)
             else:
-                st.error("❌ Data consolidation failed. Please check the logs.")
+                st.error("❌ Data consolidation failed. Please check the logs above.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.processor:
         processor = st.session_state.processor
 
-        # --- Step 2 to 5: Classifications ---
-        st.header("PROCESSING STEPS")
+        # --- Processing Steps with Enhanced Design ---
+        st.markdown(create_step_card("2️⃣", "Processing Pipeline", """
+            <p>Execute the six-step processing pipeline to classify and analyze your parts</p>
+        """), unsafe_allow_html=True)
         
-        with st.container(border=True):
-            st.subheader("(1/6) Family Classification")
-            if st.button("Run Family Classification"):
-                with st.spinner("Running..."):
+        # Family Classification
+        st.markdown(create_step_card("👨‍👩‍👧‍👦", "Family Classification", """
+            <p>Automatically categorize parts into families based on description keywords</p>
+        """), unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("Classify parts into families like Electrical, Mechanical, Hardware, etc.")
+        with col2:
+            if st.button("🔄 Run Family Classification", use_container_width=True):
+                with st.spinner("🔄 Analyzing part descriptions..."):
                     processor.run_family_classification()
-                    st.success("✅ Automated family classification complete.")
-            # FIX: Only show review if the column exists
-            if 'family' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
+                    st.success("✅ Family classification complete!")
+                    st.balloons()
         
-        with st.container(border=True):
-            st.subheader("(2/6) Size Classification")
-            if st.button("Run Size Classification"):
-                with st.spinner("Running..."):
+        if 'family' in processor.data.columns:
+            st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
+        
+        # Size Classification
+        st.markdown(create_step_card("📏", "Size Classification", """
+            <p>Classify parts by dimensions into S, M, L, XL categories</p>
+        """), unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("Analyze part dimensions to determine size categories for storage planning")
+        with col2:
+            if st.button("🔄 Run Size Classification", use_container_width=True):
+                with st.spinner("📏 Calculating volumes and dimensions..."):
                     processor.run_size_classification()
-                    st.success("✅ Automated size classification complete.")
-            # FIX: Only show review if the column exists
-            if 'size_classification' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
+                    st.success("✅ Size classification complete!")
 
-        with st.container(border=True):
-            st.subheader("(3/6) Part Classification (Percentage-Based)")
-            if st.button("Run Part Classification"):
-                with st.spinner("Running..."):
+        if 'size_classification' in processor.data.columns:
+            st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
+
+        # Part Classification
+        st.markdown(create_step_card("💰", "Part Classification (ABC Analysis)", """
+            <p>Percentage-based classification using unit prices for inventory prioritization</p>
+        """), unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("Advanced percentage-based ABC analysis for strategic inventory management")
+        with col2:
+            if st.button("🔄 Run Part Classification", use_container_width=True):
+                with st.spinner("💰 Analyzing pricing patterns..."):
                     processor.run_part_classification()
-                    st.success("✅ Percentage-based part classification complete.")
-                    st.subheader("Calculated Percentage-Based Classification Ranges")
-                    for class_name, info in processor.classifier.calculated_ranges.items():
-                        if info['min'] is not None:
-                            st.metric(label=f"{class_name} Class ({info['count']} parts)", value=f"₹{info['min']:,.2f} to ₹{info['max']:,.2f}")
-            # FIX: Only show review if the column exists
-            if 'part_classification' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
+                    st.success("✅ Part classification complete!")
+                    
+                    # Display classification ranges
+                    if processor.classifier.calculated_ranges:
+                        st.markdown("### 📊 Classification Ranges")
+                        cols = st.columns(len(processor.classifier.calculated_ranges))
+                        for i, (class_name, info) in enumerate(processor.classifier.calculated_ranges.items()):
+                            with cols[i]:
+                                if info['min'] is not None and info['max'] is not None:
+                                    st.markdown(f"""
+                                    <div class="metric-card">
+                                        <div class="metric-value">{class_name}</div>
+                                        <div class="metric-label">₹{info['min']:,.0f} - ₹{info['max']:,.0f}<br>({info['count']} parts)</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
 
-        with st.container(border=True):
-            st.subheader("(4/6) Distance & Inventory Norms")
-            current_pincode = st.text_input("Enter your current pincode for distance calculation", value="411001", help="Default is Pune")
-            if st.button("Run Location-Based Norms"):
-                with st.spinner("Calculating distances and inventory norms... This may take a while."):
-                    processor.run_location_based_norms("Pune", current_pincode)
-                    st.success(f"✅ Inventory norms calculated for location.")
-            # FIX: Only show review if the column exists (THIS IS THE LINE THAT CRASHED)
-            if 'inventory_classification' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
+        if 'part_classification' in processor.data.columns:
+            st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
 
-        with st.container(border=True):
-            st.subheader("(5/6) Warehouse Location Assignment")
-            if st.button("Run Warehouse Location Assignment"):
-                with st.spinner("Running..."):
+        # Distance & Inventory Norms
+        st.markdown(create_step_card("🗺️", "Distance & Inventory Norms", """
+            <p>Calculate distances to vendors and determine inventory requirements</p>
+        """), unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            current_pincode = st.text_input("📍 Your Location Pincode", 
+                                          value="411001", 
+                                          help="Enter your facility pincode for distance calculations")
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+            if st.button("🔄 Calculate Distances & Norms", use_container_width=True):
+                if not current_pincode.isdigit() or len(current_pincode) != 6:
+                    st.error("❌ Please enter a valid 6-digit Indian pincode.")
+                else:
+                    with st.spinner("🗺️ Calculating distances and inventory norms... This may take several minutes."):
+                        processor.run_location_based_norms("Current Location", current_pincode)
+                        st.success("✅ Distances and inventory norms calculated successfully!")
+                        st.balloons()
+
+        # Warehouse Location Assignment
+        st.markdown(create_step_card("🏢", "Warehouse Location Assignment", """
+            <p>Assign optimal warehouse locations based on part family and other characteristics</p>
+        """), unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([3,1])
+        with col1:
+            st.markdown("Determine the best storage location (e.g., High Rack, Carousal, Mezzanine) for each part.")
+        with col2:
+            if st.button("🔄 Assign Warehouse Locations", use_container_width=True):
+                with st.spinner("🏢 Assigning warehouse locations..."):
                     processor.run_warehouse_location_assignment()
-                    st.success("✅ Automated warehouse location assignment complete.")
-            # FIX: Only show review if the column exists
-            if 'wh_loc' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
+                    st.success("✅ Warehouse locations assigned successfully!")
 
-        # (Step 6/6) Final Report Generation
-        st.header("(6/6) FINAL REPORT")
-        if st.button("✅ Generate Formatted Excel Report"):
-            with st.spinner("Generating your Excel report..."):
+        if 'wh_loc' in processor.data.columns:
+            st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
+
+        # --- Final Report Generation ---
+        st.markdown("""
+        <div class="report-section">
+            <h2 class="report-title">🎉 Analysis Complete!</h2>
+            <p>Your comprehensive PFEP analysis is ready. Download the final report below.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
+        
+        if st.button("📄 Generate Final PFEP Report", use_container_width=True):
+            with st.spinner("Generating final Excel report..."):
                 excel_data = create_formatted_excel_output(processor.data)
-                st.success("Report generated successfully!")
-                st.download_button(
-                    label="📥 Download Excel Report",
-                    data=excel_data,
-                    file_name="structured_inventory_data_final.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                st.balloons()
-        st.markdown("---")
-        st.markdown("🎉 **End-to-end process complete!**")
+                st.session_state.final_report = excel_data
+                st.success("✅ Report generated!")
+
+        if st.session_state.final_report:
+            st.download_button(
+                label="📥 Download PFEP Report (.xlsx)",
+                data=st.session_state.final_report,
+                file_name="PFEP_Analysis_Report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                type="primary"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Close main container
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
