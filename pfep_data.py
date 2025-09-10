@@ -487,7 +487,7 @@ def main():
         processor = st.session_state.processor
 
         # --- Step 2 to 5: Classifications ---
-        st.header("--- PROCESSING STEPS ---")
+        st.header("PROCESSING STEPS")
         
         with st.container(border=True):
             st.subheader("(1/6) Family Classification")
@@ -545,7 +545,7 @@ def main():
                 st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
 
         # (Step 6/6) Final Report Generation
-        st.header("--- (6/6) FINAL REPORT ---")
+        st.header("(6/6) FINAL REPORT")
         if st.button("✅ Generate Formatted Excel Report"):
             with st.spinner("Generating your Excel report..."):
                 excel_data = create_formatted_excel_output(processor.data)
