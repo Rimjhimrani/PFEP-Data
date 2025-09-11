@@ -463,10 +463,22 @@ def main():
             "7. Generate Report"
         ]
         
+        # Determine the highest completed step to reflect in the sidebar
+        active_step_index = -1
+        if 'processor' in st.session_state and st.session_state.processor is not None:
+            data_cols = st.session_state.processor.data.columns
+            if 'family' in data_cols: active_step_index = 1
+            if 'size_classification' in data_cols: active_step_index = 2
+            if 'part_classification' in data_cols: active_step_index = 3
+            if 'inventory_classification' in data_cols: active_step_index = 4
+            if 'wh_loc' in data_cols: active_step_index = 5
+
+
         for i, step in enumerate(steps):
-            if i < st.session_state.current_step:
+            # i+1 corresponds to the step number
+            if i < active_step_index:
                 st.markdown(f"✅ **{step}**")
-            elif i == st.session_state.current_step:
+            elif i == active_step_index:
                 st.markdown(f"➡️ **{step}**")
             else:
                 st.markdown(f"⏳ _{step}_")
@@ -502,52 +514,46 @@ def main():
                         st.text(log)
 
                 if master_df is not None:
-                    st.success("✅ Data consolidation complete! Proceed to the next step.")
+                    st.success("✅ Data consolidation complete! You can now proceed with the processing steps below.")
                     st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
                     st.dataframe(master_df.head())
-                    st.session_state.current_step = 1
                 else:
                     st.error("❌ Data consolidation failed. Please check the logs and your input files.")
-                    st.session_state.current_step = 0
+                    st.session_state.processor = None # Reset on failure
 
-    # --- PROCESSING STEPS (2 through 7) ---
+    # --- SEQUENTIAL PROCESSING STEPS (2 through 7) ---
     if st.session_state.processor:
         processor = st.session_state.processor
         st.markdown("---")
         st.header("Step 2-7: Data Processing and Report Generation")
-
-        # --- Tabbed interface for a cleaner workflow ---
-        tab_family, tab_size, tab_part, tab_inv, tab_wh, tab_report = st.tabs([
-            "Family Class.", "Size Class.", "Part Class.", "Inventory Norms", "WH Location", "Final Report"
-        ])
-
-        with tab_family:
-            st.subheader("Family Classification")
+        
+        # Step 2: Family Classification
+        with st.container(border=True):
+            st.subheader("(2/7) Family Classification")
             if st.button("Run Family Classification", use_container_width=True):
                 with st.spinner("Running..."):
                     processor.run_family_classification()
                     st.success("✅ Automated family classification complete.")
-                    st.session_state.current_step = max(st.session_state.current_step, 2)
             if 'family' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
 
-        with tab_size:
-            st.subheader("Size Classification")
+        # Step 3: Size Classification
+        with st.container(border=True):
+            st.subheader("(3/7) Size Classification")
             if st.button("Run Size Classification", use_container_width=True):
                 with st.spinner("Running..."):
                     processor.run_size_classification()
                     st.success("✅ Automated size classification complete.")
-                    st.session_state.current_step = max(st.session_state.current_step, 3)
             if 'size_classification' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
 
-        with tab_part:
-            st.subheader("Part Classification (Percentage-Based)")
+        # Step 4: Part Classification
+        with st.container(border=True):
+            st.subheader("(4/7) Part Classification (Percentage-Based)")
             if st.button("Run Part Classification", use_container_width=True):
                 with st.spinner("Running..."):
                     processor.run_part_classification()
                     st.success("✅ Percentage-based part classification complete.")
-                    st.session_state.current_step = max(st.session_state.current_step, 4)
                     
                     st.subheader("Calculated Classification Ranges")
                     cols = st.columns(len(processor.classifier.calculated_ranges))
@@ -559,30 +565,31 @@ def main():
             if 'part_classification' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
 
-        with tab_inv:
-            st.subheader("Distance & Inventory Norms")
+        # Step 5: Inventory Norms
+        with st.container(border=True):
+            st.subheader("(5/7) Distance & Inventory Norms")
             current_pincode = st.text_input("Enter your current pincode for distance calculation", value="411001", help="Default is Pune")
             if st.button("Run Location-Based Norms", use_container_width=True):
                 with st.spinner("Calculating distances and inventory norms... This may take a while."):
                     processor.run_location_based_norms("Pune", current_pincode)
                     st.success("✅ Inventory norms calculated successfully.")
-                    st.session_state.current_step = max(st.session_state.current_step, 5)
             if 'inventory_classification' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
 
-        with tab_wh:
-            st.subheader("Warehouse Location Assignment")
+        # Step 6: Warehouse Location
+        with st.container(border=True):
+            st.subheader("(6/7) Warehouse Location Assignment")
             if st.button("Run Warehouse Location Assignment", use_container_width=True):
                 with st.spinner("Running..."):
                     processor.run_warehouse_location_assignment()
                     st.success("✅ Automated warehouse location assignment complete.")
-                    st.session_state.current_step = max(st.session_state.current_step, 6)
             if 'wh_loc' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
 
-        with tab_report:
-            st.subheader("Generate Final Report")
-            st.markdown("Once all previous steps are completed and reviewed, you can generate the final formatted Excel report.")
+        # Step 7: Final Report
+        with st.container(border=True):
+            st.subheader("(7/7) Generate Final Report")
+            st.markdown("Once all previous steps are completed and reviewed, click the button below to generate the final formatted Excel report.")
             if st.button("✅ **Generate Formatted Excel Report**", type="primary", use_container_width=True):
                 with st.spinner("Generating your Excel report..."):
                     excel_data = create_formatted_excel_output(processor.data)
@@ -595,7 +602,8 @@ def main():
                         use_container_width=True
                     )
                     st.balloons()
-                    st.session_state.current_step = 7
+                    st.markdown("---")
+                    st.markdown("🎉 **End-to-end process complete!**")
 
 if __name__ == "__main__":
     main()
