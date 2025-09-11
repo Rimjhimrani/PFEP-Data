@@ -9,7 +9,6 @@ import re
 import io
 
 # --- 1. MASTER TEMPLATE AND LOGIC CONSTANTS ---
-# NOTE: All backend logic, constants, and functions are preserved exactly as in the original script.
 
 ALL_TEMPLATE_COLUMNS = [
     'SR.NO', 'PARTNO', 'PART DESCRIPTION', 'Qty/Veh 1', 'Qty/Veh 2', 'TOTAL', 'UOM', 'ST.NO',
@@ -28,6 +27,8 @@ ALL_TEMPLATE_COLUMNS = [
     'L-MM_Line', 'W-MM_Line', 'H-MM_Line', 'Volume_Line', 'CONTAINER / RACK','NO OF TRIPS/DAY', 'INVENTORY LINE SIDE'
 ]
 
+
+# Enhanced column mapping to include qty/veh variations
 PFEP_COLUMN_MAP = {
     'part_id': 'PARTNO', 'description': 'PART DESCRIPTION', 'qty_veh': 'Qty/Veh',
     'qty/veh': 'Qty/Veh', 'quantity_per_vehicle': 'Qty/Veh', 'net_daily_consumption': 'NET',
@@ -402,28 +403,24 @@ def create_formatted_excel_output(_df):
     
     return output.getvalue()
 
-# --- 6. SIMPLIFIED STREAMLIT UI ---
-
+# --- 6. STREAMLIT UI ---
 def manual_review_step(df, internal_key, step_name):
-    """A simplified component for the manual review part of each step."""
-    st.markdown("---")
-    st.write(f"**Optional: Manual Review for {step_name}**")
-    
+    st.subheader(f"Manual Review: {step_name}")
     pfep_name = INTERNAL_TO_PFEP_NEW_COLS.get(internal_key, PFEP_COLUMN_MAP.get(internal_key, internal_key))
     review_df = df[['part_id', 'description', internal_key]].copy()
     review_df.rename(columns={internal_key: pfep_name, 'part_id': 'PARTNO', 'description': 'PART DESCRIPTION'}, inplace=True)
     
-    st.dataframe(review_df.head(5), height=200)
+    st.dataframe(review_df.head(10)) # Display a preview
     
     csv = review_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label=f"Download '{step_name}' File for Review",
+        label=f"Download '{step_name}' file for review",
         data=csv,
         file_name=f"manual_review_{step_name.lower().replace(' ', '_')}.csv",
         mime='text/csv',
     )
     
-    uploaded_file = st.file_uploader(f"Upload Modified '{step_name}' File", type=['csv'], key=f"uploader_{internal_key}")
+    uploaded_file = st.file_uploader(f"Upload the modified '{step_name}' file (optional)", type=['csv'], key=f"uploader_{internal_key}")
     if uploaded_file:
         try:
             uploaded_df = pd.read_csv(uploaded_file)
@@ -434,182 +431,171 @@ def manual_review_step(df, internal_key, step_name):
                 st.success(f"✅ Manual changes for {step_name} applied.")
                 return df
             else:
-                st.error("Upload failed. Ensure file has 'PARTNO' and the specific classification column.")
+                st.error("Upload failed. Ensure the file contains 'PARTNO' and the specific classification column.")
         except Exception as e:
             st.error(f"Error processing uploaded file: {e}")
             
     return df
 
-def initialize_session_state():
-    """Initializes all required session state variables."""
+def main():
+    st.set_page_config(layout="wide", page_title="Inventory & Supply Chain Analysis")
+
+    # --- HEADER ---
+    st.title("🏭 PFEP (Plan For Each Part) Analyser")
+    st.markdown("Streamline your inventory management by consolidating, classifying, and analyzing parts data to generate a comprehensive PFEP report.")
+    st.markdown("---")
+
     if 'processor' not in st.session_state:
         st.session_state.processor = None
-    if 'step_completion' not in st.session_state:
-        st.session_state.step_completion = {
-            'consolidated': False, 'family': False, 'size': False, 
-            'part': False, 'inventory': False, 'warehouse': False
-        }
+    if 'current_step' not in st.session_state:
+        st.session_state.current_step = 0
 
-def main():
-    st.set_page_config(layout="wide", page_title="PFEP Analyser", page_icon="🏭")
-    
-    st.title("🏭 PFEP (Plan For Each Part) Analyser")
-    st.markdown("A streamlined tool for inventory classification and supply chain analysis.")
-
-    initialize_session_state()
-
-    # --- SIDEBAR FOR PROGRESS TRACKING ---
+    # --- SIDEBAR FOR NAVIGATION AND STATUS ---
     with st.sidebar:
-        st.header("📊 Progress Tracker")
-        status = st.session_state.step_completion
+        st.header("Process Flow")
+        steps = [
+            "1. Upload & Consolidate",
+            "2. Family Classification",
+            "3. Size Classification",
+            "4. Part Classification",
+            "5. Distance & Inventory Norms",
+            "6. Warehouse Location",
+            "7. Generate Report"
+        ]
         
-        st.markdown(f"{'✅' if status['consolidated'] else '⬜'} **Data Consolidation**")
-        st.progress((1 if status['consolidated'] else 0) / 1.0)
-        
-        st.markdown("---")
-        st.markdown(f"**Processing Steps**")
-        
-        processing_steps = ['family', 'size', 'part', 'inventory', 'warehouse']
-        steps_done = sum(status[step] for step in processing_steps)
-        
-        st.markdown(f"{'✅' if status['family'] else '⬜'} 1. Family Classification")
-        st.markdown(f"{'✅' if status['size'] else '⬜'} 2. Size Classification")
-        st.markdown(f"{'✅' if status['part'] else '⬜'} 3. Part Classification")
-        st.markdown(f"{'✅' if status['inventory'] else '⬜'} 4. Inventory Norms")
-        st.markdown(f"{'✅' if status['warehouse'] else '⬜'} 5. Warehouse Location")
-        
-        st.progress(steps_done / len(processing_steps))
-        st.info(f"{steps_done} of {len(processing_steps)} steps complete.")
-
-    # --- MAIN PANEL FOR WORKFLOW ---
-    
-    # STEP 1: Setup and Data Consolidation
-    with st.expander("STEP 1: Upload Data & Set Parameters", expanded=not st.session_state.step_completion['consolidated']):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("📁 Upload Data Files")
-            pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
-            mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
-            vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
-        
-        with col2:
-            st.subheader("⚙️ Set Production Parameters")
-            daily_mult_1 = st.number_input("Daily Qty - Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
-            daily_mult_2 = st.number_input("Daily Qty - Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
-
-        st.divider()
-        if st.button("▶️ Start Data Consolidation", type="primary", use_container_width=True):
-            if not pbom_files and not mbom_files:
-                st.error("Please upload at least one BOM file to start.")
+        for i, step in enumerate(steps):
+            if i < st.session_state.current_step:
+                st.markdown(f"✅ **{step}**")
+            elif i == st.session_state.current_step:
+                st.markdown(f"➡️ **{step}**")
             else:
-                with st.spinner("Consolidating all data sources..."):
-                    bom_files = {"PBOM": pbom_files, "MBOM": mbom_files}
-                    master_df, logs = consolidate_data(bom_files, vendor_file, daily_mult_1, daily_mult_2)
-                    
-                    st.session_state.logs = logs
-                    
-                    if master_df is not None:
-                        st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
-                        st.session_state.step_completion['consolidated'] = True
-                        st.success("Consolidation Complete! You can now proceed to the processing steps below.")
-                        st.rerun() 
-                    else:
-                        st.error("Consolidation Failed. See logs below for details.")
-        
-        if 'logs' in st.session_state and st.session_state.logs:
-            st.subheader("Consolidation Log")
-            for log in st.session_state.logs:
-                st.text(log)
+                st.markdown(f"⏳ _{step}_")
 
-    # Subsequent steps are shown only after consolidation is complete
-    if st.session_state.step_completion['consolidated']:
-        processor = st.session_state.processor
-        st.header("🚀 STEP 2: Processing Workflow")
-        st.info("Data is ready. Run the following steps in sequence to classify and analyze your data.")
-        
-        # Grid Layout for Processing Steps
-        col1, col2 = st.columns(2)
-        
+    # --- STEP 1: DATA UPLOAD AND CONSOLIDATION ---
+    st.header("Step 1: Upload Data and Set Parameters")
+    
+    with st.container(border=True):
+        st.subheader("📁 Upload Data Files")
+        col1, col2, col3 = st.columns(3)
         with col1:
-            with st.container(border=True):
-                st.subheader("1. 🌿 Family Classification")
-                if st.button("Run Family Classification", use_container_width=True):
-                    with st.spinner("Categorizing families..."):
-                        processor.run_family_classification()
-                        st.session_state.step_completion['family'] = True
-                        st.success("Family classification complete.")
-                if st.session_state.step_completion['family']:
-                    st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
-
-            with st.container(border=True):
-                st.subheader("3. 💰 Part Classification (ABC)")
-                if st.button("Run Part Classification", use_container_width=True):
-                    with st.spinner("Analyzing prices for ABC classification..."):
-                        processor.run_part_classification()
-                        st.session_state.step_completion['part'] = True
-                        st.success("Part classification complete.")
-                if st.session_state.step_completion['part']:
-                    st.write("**Calculated Price Ranges:**")
-                    for class_name, info in processor.classifier.calculated_ranges.items():
-                         if info['min'] is not None:
-                            st.metric(label=f"Class {class_name} ({info['count']} parts)", value=f"₹{info['min']:,.0f} - ₹{info['max']:,.0f}")
-                    st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
-
-            with st.container(border=True):
-                st.subheader("5. 🏢 Warehouse Location")
-                if st.button("Run Warehouse Assignment", use_container_width=True):
-                    with st.spinner("Assigning warehouse locations..."):
-                        processor.run_warehouse_location_assignment()
-                        st.session_state.step_completion['warehouse'] = True
-                        st.success("Warehouse location assignment complete.")
-                if st.session_state.step_completion['warehouse']:
-                    st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
-
+            pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
         with col2:
-            with st.container(border=True):
-                st.subheader("2. 📦 Size Classification")
-                if st.button("Run Size Classification", use_container_width=True):
-                    with st.spinner("Calculating volumes and sizes..."):
-                        processor.run_size_classification()
-                        st.session_state.step_completion['size'] = True
-                        st.success("Size classification complete.")
-                if st.session_state.step_completion['size']:
-                    st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
+            mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
+        with col3:
+            vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
 
-            with st.container(border=True):
-                st.subheader("4. 📍 Distance & Inventory Norms")
-                pincode = st.text_input("Enter your warehouse pincode", "411001")
-                if st.button("Run Inventory Norms", use_container_width=True):
-                    with st.spinner("Calculating distances... (This may take a moment)"):
-                        processor.run_location_based_norms("Pune", pincode)
-                        st.session_state.step_completion['inventory'] = True
-                        st.success("Inventory norms calculated.")
-                if st.session_state.step_completion['inventory']:
-                    st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
+        st.subheader("📊 Set Daily Consumption")
+        d_col1, d_col2 = st.columns(2)
+        daily_mult_1 = d_col1.number_input("Enter daily production for Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
+        daily_mult_2 = d_col2.number_input("Enter daily production for Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
+        
+    if st.button("▶️ **Start Data Consolidation**", type="primary", use_container_width=True):
+        if not pbom_files and not mbom_files:
+            st.error("No BOM data loaded. Please upload at least one PBOM or MBOM file.")
+        else:
+            with st.spinner("Consolidating data... Please wait."):
+                bom_files = {"PBOM": pbom_files, "MBOM": mbom_files}
+                master_df, logs = consolidate_data(bom_files, vendor_file, daily_mult_1, daily_mult_2)
+                
+                with st.expander("Show Consolidation Log", expanded=False):
+                    for log in logs:
+                        st.text(log)
 
-        # --- Final Report Generation ---
-        st.divider()
-        st.header("🏆 STEP 3: Generate Final Report")
-        
-        all_steps_done = all(st.session_state.step_completion[step] for step in processing_steps)
-        
-        if not all_steps_done:
-            st.warning("Please complete all 5 processing steps to generate the final report.")
-        
-        if st.button("Generate Formatted Excel Report", type="primary", use_container_width=True, disabled=not all_steps_done):
-            with st.spinner("Creating your final Excel file..."):
-                excel_data = create_formatted_excel_output(processor.data)
-                st.success("🎉 Report generated successfully!")
-                st.download_button(
-                    label="📥 Download Excel Report",
-                    data=excel_data,
-                    file_name="PFEP_Analysis_Report.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-                st.balloons()
-    else:
-        st.info("Welcome! Please begin by uploading your data files and setting parameters in Step 1 above.", icon="👋")
+                if master_df is not None:
+                    st.success("✅ Data consolidation complete! Proceed to the next step.")
+                    st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
+                    st.dataframe(master_df.head())
+                    st.session_state.current_step = 1
+                else:
+                    st.error("❌ Data consolidation failed. Please check the logs and your input files.")
+                    st.session_state.current_step = 0
+
+    # --- PROCESSING STEPS (2 through 7) ---
+    if st.session_state.processor:
+        processor = st.session_state.processor
+        st.markdown("---")
+        st.header("Step 2-7: Data Processing and Report Generation")
+
+        # --- Tabbed interface for a cleaner workflow ---
+        tab_family, tab_size, tab_part, tab_inv, tab_wh, tab_report = st.tabs([
+            "Family Class.", "Size Class.", "Part Class.", "Inventory Norms", "WH Location", "Final Report"
+        ])
+
+        with tab_family:
+            st.subheader("Family Classification")
+            if st.button("Run Family Classification", use_container_width=True):
+                with st.spinner("Running..."):
+                    processor.run_family_classification()
+                    st.success("✅ Automated family classification complete.")
+                    st.session_state.current_step = max(st.session_state.current_step, 2)
+            if 'family' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
+
+        with tab_size:
+            st.subheader("Size Classification")
+            if st.button("Run Size Classification", use_container_width=True):
+                with st.spinner("Running..."):
+                    processor.run_size_classification()
+                    st.success("✅ Automated size classification complete.")
+                    st.session_state.current_step = max(st.session_state.current_step, 3)
+            if 'size_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
+
+        with tab_part:
+            st.subheader("Part Classification (Percentage-Based)")
+            if st.button("Run Part Classification", use_container_width=True):
+                with st.spinner("Running..."):
+                    processor.run_part_classification()
+                    st.success("✅ Percentage-based part classification complete.")
+                    st.session_state.current_step = max(st.session_state.current_step, 4)
+                    
+                    st.subheader("Calculated Classification Ranges")
+                    cols = st.columns(len(processor.classifier.calculated_ranges))
+                    for idx, (class_name, info) in enumerate(processor.classifier.calculated_ranges.items()):
+                        with cols[idx]:
+                            if info['min'] is not None:
+                                st.metric(label=f"{class_name} Class ({info['count']} parts)", value=f"₹{info['min']:,.2f} to ₹{info['max']:,.2f}")
+                                
+            if 'part_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
+
+        with tab_inv:
+            st.subheader("Distance & Inventory Norms")
+            current_pincode = st.text_input("Enter your current pincode for distance calculation", value="411001", help="Default is Pune")
+            if st.button("Run Location-Based Norms", use_container_width=True):
+                with st.spinner("Calculating distances and inventory norms... This may take a while."):
+                    processor.run_location_based_norms("Pune", current_pincode)
+                    st.success("✅ Inventory norms calculated successfully.")
+                    st.session_state.current_step = max(st.session_state.current_step, 5)
+            if 'inventory_classification' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
+
+        with tab_wh:
+            st.subheader("Warehouse Location Assignment")
+            if st.button("Run Warehouse Location Assignment", use_container_width=True):
+                with st.spinner("Running..."):
+                    processor.run_warehouse_location_assignment()
+                    st.success("✅ Automated warehouse location assignment complete.")
+                    st.session_state.current_step = max(st.session_state.current_step, 6)
+            if 'wh_loc' in processor.data.columns:
+                st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
+
+        with tab_report:
+            st.subheader("Generate Final Report")
+            st.markdown("Once all previous steps are completed and reviewed, you can generate the final formatted Excel report.")
+            if st.button("✅ **Generate Formatted Excel Report**", type="primary", use_container_width=True):
+                with st.spinner("Generating your Excel report..."):
+                    excel_data = create_formatted_excel_output(processor.data)
+                    st.success("Report generated successfully!")
+                    st.download_button(
+                        label="📥 Download Excel Report",
+                        data=excel_data,
+                        file_name="structured_inventory_data_final.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+                    st.balloons()
+                    st.session_state.current_step = 7
 
 if __name__ == "__main__":
     main()
