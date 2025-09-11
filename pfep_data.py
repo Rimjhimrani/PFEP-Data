@@ -8,6 +8,307 @@ import math
 import re
 import io
 
+# --- CUSTOM CSS FOR MODERN UI ---
+def load_custom_css():
+    st.markdown("""
+    <style>
+    /* Main app styling */
+    .main {
+        padding-top: 1rem;
+    }
+    
+    /* Custom title styling */
+    .custom-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 3rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 2rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Step container styling */
+    .step-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border-left: 5px solid #667eea;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .step-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    /* Process step styling */
+    .process-step {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border: 2px solid #e3f2fd;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .process-step:hover {
+        border-color: #2196f3;
+        transform: translateY(-1px);
+    }
+    
+    /* Status indicators */
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    
+    .status-pending {
+        background-color: #ff9800;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-complete {
+        background-color: #4caf50;
+    }
+    
+    .status-running {
+        background-color: #2196f3;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Custom button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Primary action button */
+    .primary-button {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+        font-size: 1.1rem !important;
+        padding: 0.8rem 3rem !important;
+        border-radius: 30px !important;
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.3) !important;
+    }
+    
+    /* Info cards */
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+    }
+    
+    .info-card h3 {
+        margin-top: 0;
+        color: white !important;
+    }
+    
+    /* Success card */
+    .success-card {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.2);
+    }
+    
+    /* Warning card */
+    .warning-card {
+        background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.2);
+    }
+    
+    /* Metrics styling */
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-left: 4px solid #667eea;
+        margin: 1rem 0;
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: scale(1.02);
+    }
+    
+    /* Progress bar styling */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* File uploader styling */
+    .uploadedFile {
+        border: 2px dashed #667eea;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+    }
+    
+    /* Section headers */
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 2rem 0 1rem 0;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+    }
+    
+    /* Process flow indicator */
+    .process-flow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 2rem 0;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+        border-radius: 12px;
+    }
+    
+    .flow-step {
+        text-align: center;
+        flex: 1;
+        padding: 0.5rem;
+    }
+    
+    .flow-arrow {
+        color: #667eea;
+        font-size: 1.5rem;
+    }
+    
+    /* Custom expander */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border-radius: 10px 10px 0 0;
+        font-weight: 600;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Dataframe styling */
+    .dataframe {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Footer */
+    .footer {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        border-radius: 15px;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def create_step_indicator(current_step, total_steps):
+    """Create a visual step indicator"""
+    steps = []
+    for i in range(1, total_steps + 1):
+        if i < current_step:
+            status = "complete"
+            icon = "✅"
+        elif i == current_step:
+            status = "running"
+            icon = "🔄"
+        else:
+            status = "pending"
+            icon = "⏳"
+        
+        steps.append(f"""
+        <div class="flow-step">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{icon}</div>
+            <div style="font-weight: 600;">Step {i}</div>
+        </div>
+        """)
+    
+    arrows = ["<div class='flow-arrow'>→</div>"] * (total_steps - 1)
+    
+    flow_html = "<div class='process-flow'>"
+    for i, step in enumerate(steps):
+        flow_html += step
+        if i < len(arrows):
+            flow_html += arrows[i]
+    flow_html += "</div>"
+    
+    st.markdown(flow_html, unsafe_allow_html=True)
+
+def create_info_card(title, content, card_type="info"):
+    """Create styled info cards"""
+    card_class = f"{card_type}-card"
+    st.markdown(f"""
+    <div class="{card_class}">
+        <h3>{title}</h3>
+        <p>{content}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def create_metric_display(metrics_data):
+    """Create styled metric display"""
+    cols = st.columns(len(metrics_data))
+    for i, (label, value, delta) in enumerate(metrics_data):
+        with cols[i]:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="color: #667eea; margin: 0 0 0.5rem 0;">{label}</h3>
+                <h2 style="color: #333; margin: 0;">{value}</h2>
+                {f'<p style="color: #4caf50; margin: 0.5rem 0 0 0;">+{delta}</p>' if delta else ''}
+            </div>
+            """, unsafe_allow_html=True)
+
 # --- 1. MASTER TEMPLATE AND LOGIC CONSTANTS ---
 
 ALL_TEMPLATE_COLUMNS = [
@@ -405,22 +706,38 @@ def create_formatted_excel_output(_df):
 
 # --- 6. STREAMLIT UI ---
 def manual_review_step(df, internal_key, step_name):
-    st.subheader(f"Manual Review: {step_name}")
+    st.markdown(f"""
+    <div class="process-step">
+        <h4>🔍 Manual Review: {step_name}</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
     pfep_name = INTERNAL_TO_PFEP_NEW_COLS.get(internal_key, PFEP_COLUMN_MAP.get(internal_key, internal_key))
     review_df = df[['part_id', 'description', internal_key]].copy()
     review_df.rename(columns={internal_key: pfep_name, 'part_id': 'PARTNO', 'description': 'PART DESCRIPTION'}, inplace=True)
     
-    st.dataframe(review_df.head(10)) # Display a preview
+    with st.container():
+        st.markdown("**📋 Preview of Classification Results:**")
+        st.dataframe(review_df.head(10), use_container_width=True)
     
     csv = review_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label=f"Download '{step_name}' file for review",
-        data=csv,
-        file_name=f"manual_review_{step_name.lower().replace(' ', '_')}.csv",
-        mime='text/csv',
-    )
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.download_button(
+            label=f"📥 Download '{step_name}' file for review",
+            data=csv,
+            file_name=f"manual_review_{step_name.lower().replace(' ', '_')}.csv",
+            mime='text/csv',
+            use_container_width=True
+        )
     
-    uploaded_file = st.file_uploader(f"Upload the modified '{step_name}' file (optional)", type=['csv'], key=f"uploader_{internal_key}")
+    with col2:
+        uploaded_file = st.file_uploader(
+            f"📤 Upload modified '{step_name}' file (optional)", 
+            type=['csv'], 
+            key=f"uploader_{internal_key}"
+        )
+    
     if uploaded_file:
         try:
             uploaded_df = pd.read_csv(uploaded_file)
@@ -428,136 +745,405 @@ def manual_review_step(df, internal_key, step_name):
                 uploaded_df.rename(columns={pfep_name: internal_key, 'PARTNO': 'part_id'}, inplace=True)
                 update_map = uploaded_df.set_index('part_id')[internal_key].to_dict()
                 df[internal_key] = df['part_id'].map(update_map).fillna(df[internal_key])
-                st.success(f"✅ Manual changes for {step_name} applied.")
+                create_info_card("Success!", f"Manual changes for {step_name} applied successfully.", "success")
                 return df
             else:
-                st.error("Upload failed. Ensure the file contains 'PARTNO' and the specific classification column.")
+                create_info_card("Upload Error", "Ensure the file contains 'PARTNO' and the specific classification column.", "warning")
         except Exception as e:
-            st.error(f"Error processing uploaded file: {e}")
+            create_info_card("Processing Error", f"Error processing uploaded file: {e}", "warning")
             
     return df
 
 def main():
-    st.set_page_config(layout="wide", page_title="Inventory & Supply Chain Analysis")
-    st.title("🏭 PFEP (Plan For Each Part) Analyser")
+    # Load custom CSS
+    load_custom_css()
+    
+    # Page configuration
+    st.set_page_config(
+        layout="wide", 
+        page_title="PFEP Analyzer - Modern Dashboard",
+        page_icon="🏭",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Custom title with gradient
+    st.markdown('<h1 class="custom-title">🏭 PFEP Analyzer</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Plan For Each Part - Advanced Supply Chain Analysis</p>', unsafe_allow_html=True)
 
     if 'processor' not in st.session_state:
         st.session_state.processor = None
 
+    # Create process flow indicator
+    create_step_indicator(1, 6)
+
     # --- Step 1: File Uploads and Initial Setup ---
-    with st.expander("STEP 1: Upload Data Files & Set Parameters", expanded=True):
+    st.markdown('<h2 class="section-header">📂 Data Upload & Configuration</h2>', unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown("""
+        <div class="step-container">
+            <h3>📁 Upload Your Data Files</h3>
+            <p>Upload your BOM files and vendor master data to get started with the analysis.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.subheader("📁 UPLOAD PBOM FILES")
+            st.markdown("**📊 PBOM FILES**")
             pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
+            
         with col2:
-            st.subheader("📁 UPLOAD MBOM FILES")
+            st.markdown("**📋 MBOM FILES**")
             mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
+            
         with col3:
-            st.subheader("🚚 UPLOAD VENDOR MASTER FILE")
+            st.markdown("**🚚 VENDOR MASTER FILE**")
             vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
         
-        st.subheader("📊 DAILY CONSUMPTION CALCULATION")
+        st.markdown("""
+        <div class="step-container">
+            <h3>⚙️ Production Configuration</h3>
+            <p>Set your daily production quantities for accurate consumption calculations.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         d_col1, d_col2 = st.columns(2)
-        daily_mult_1 = d_col1.number_input("Enter daily production quantity for Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
-        daily_mult_2 = d_col2.number_input("Enter daily production quantity for Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
+        with d_col1:
+            daily_mult_1 = st.number_input("🚗 Daily production - Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
+        with d_col2:
+            daily_mult_2 = st.number_input("🚙 Daily production - Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
 
-    if st.button("▶️ Start Data Consolidation & Processing"):
+    # Prominent start button
+    st.markdown("<br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        start_processing = st.button("🚀 Start Data Processing", key="start_btn", help="Begin the comprehensive PFEP analysis", use_container_width=True)
+        st.markdown('<style>.stButton > button { font-size: 1.2rem !important; padding: 0.8rem 2rem !important; }</style>', unsafe_allow_html=True)
+
+    if start_processing:
         if not pbom_files and not mbom_files:
-            st.error("No BOM data loaded. Please upload at least one PBOM or MBOM file.")
+            create_info_card("No Data Found", "Please upload at least one PBOM or MBOM file to proceed.", "warning")
             return
 
-        with st.spinner("Consolidating data... Please wait."):
+        with st.spinner("🔄 Consolidating and processing your data..."):
             bom_files = {"PBOM": pbom_files, "MBOM": mbom_files}
             master_df, logs = consolidate_data(bom_files, vendor_file, daily_mult_1, daily_mult_2)
             
-            st.info("Consolidation Log:")
-            for log in logs:
-                st.text(log)
+            # Display consolidation results
+            st.markdown('<h3 class="section-header">📊 Processing Results</h3>', unsafe_allow_html=True)
+            
+            with st.expander("📋 View Processing Log", expanded=False):
+                for log in logs:
+                    if "✅" in log:
+                        st.success(log)
+                    elif "⚠️" in log:
+                        st.warning(log)
+                    elif "❌" in log:
+                        st.error(log)
+                    else:
+                        st.info(log)
 
             if master_df is not None:
-                st.success("✅ Data consolidation complete!")
+                create_info_card("Data Processing Complete", f"Successfully processed {len(master_df)} unique parts. Ready for classification steps.", "success")
                 st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
-                st.dataframe(master_df.head())
+                
+                # Display summary metrics
+                total_parts = len(master_df)
+                total_consumption = master_df.get('net_daily_consumption', pd.Series([0])).sum()
+                avg_price = master_df.get('unit_price', pd.Series([0])).mean()
+                
+                create_metric_display([
+                    ("Total Parts", f"{total_parts:,}", None),
+                    ("Daily Consumption", f"{total_consumption:,.1f}", None),
+                    ("Avg Unit Price", f"₹{avg_price:,.2f}", None)
+                ])
+                
+                with st.expander("👀 Preview Processed Data", expanded=False):
+                    st.dataframe(master_df.head(20), use_container_width=True)
             else:
-                st.error("❌ Data consolidation failed. Please check the logs.")
+                create_info_card("Processing Failed", "Data consolidation failed. Please check the processing log above.", "warning")
 
     if st.session_state.processor:
         processor = st.session_state.processor
 
-        # --- Step 2 to 5: Classifications ---
-        st.header("PROCESSING STEPS")
+        # Update process flow
+        create_step_indicator(2, 6)
+
+        # --- Processing Steps with Modern UI ---
+        st.markdown('<h2 class="section-header">⚙️ Processing Pipeline</h2>', unsafe_allow_html=True)
         
-        with st.container(border=True):
-            st.subheader("(1/6) Family Classification")
-            if st.button("Run Family Classification"):
-                with st.spinner("Running..."):
-                    processor.run_family_classification()
-                    st.success("✅ Automated family classification complete.")
-            # FIX: Only show review if the column exists
+        # Step 1: Family Classification
+        with st.container():
+            st.markdown("""
+            <div class="process-step">
+                <h3>🏷️ Step 1: Family Classification</h3>
+                <p>Automatically categorize parts based on keywords in descriptions</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                if st.button("🔄 Run Family Classification", key="family_btn", use_container_width=True):
+                    with st.spinner("Analyzing part descriptions..."):
+                        processor.run_family_classification()
+                        create_info_card("Classification Complete", "Family classification has been completed successfully.", "success")
+            
+            with col2:
+                if 'family' in processor.data.columns:
+                    families = processor.data['family'].value_counts()
+                    st.metric("Families Found", len(families))
+            
             if 'family' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'family', 'Family Classification')
         
-        with st.container(border=True):
-            st.subheader("(2/6) Size Classification")
-            if st.button("Run Size Classification"):
-                with st.spinner("Running..."):
-                    processor.run_size_classification()
-                    st.success("✅ Automated size classification complete.")
-            # FIX: Only show review if the column exists
+        # Step 2: Size Classification
+        with st.container():
+            st.markdown("""
+            <div class="process-step">
+                <h3>📏 Step 2: Size Classification</h3>
+                <p>Classify parts by physical dimensions and volume calculations</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                if st.button("🔄 Run Size Classification", key="size_btn", use_container_width=True):
+                    with st.spinner("Calculating volumes and dimensions..."):
+                        processor.run_size_classification()
+                        create_info_card("Classification Complete", "Size classification has been completed successfully.", "success")
+            
+            with col2:
+                if 'size_classification' in processor.data.columns:
+                    sizes = processor.data['size_classification'].value_counts()
+                    st.metric("Size Categories", len(sizes))
+            
             if 'size_classification' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'size_classification', 'Size Classification')
 
-        with st.container(border=True):
-            st.subheader("(3/6) Part Classification (Percentage-Based)")
-            if st.button("Run Part Classification"):
-                with st.spinner("Running..."):
-                    processor.run_part_classification()
-                    st.success("✅ Percentage-based part classification complete.")
-                    st.subheader("Calculated Percentage-Based Classification Ranges")
-                    for class_name, info in processor.classifier.calculated_ranges.items():
-                        if info['min'] is not None:
-                            st.metric(label=f"{class_name} Class ({info['count']} parts)", value=f"₹{info['min']:,.2f} to ₹{info['max']:,.2f}")
-            # FIX: Only show review if the column exists
+        # Step 3: Part Classification
+        with st.container():
+            st.markdown("""
+            <div class="process-step">
+                <h3>💰 Step 3: Part Classification (ABC Analysis)</h3>
+                <p>Percentage-based classification using unit price analysis</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                if st.button("🔄 Run Part Classification", key="part_btn", use_container_width=True):
+                    with st.spinner("Performing ABC analysis..."):
+                        processor.run_part_classification()
+                        create_info_card("Classification Complete", "Part classification has been completed successfully.", "success")
+                        
+                        # Display classification ranges
+                        st.markdown("**📊 Classification Ranges:**")
+                        for class_name, info in processor.classifier.calculated_ranges.items():
+                            if info['min'] is not None:
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric(f"{class_name} Class", f"{info['count']} parts")
+                                with col_b:
+                                    st.metric("Min Price", f"₹{info['min']:,.2f}")
+                                with col_c:
+                                    st.metric("Max Price", f"₹{info['max']:,.2f}")
+            
+            with col2:
+                if 'part_classification' in processor.data.columns:
+                    classes = processor.data['part_classification'].value_counts()
+                    st.metric("Classification Types", len(classes))
+            
             if 'part_classification' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'part_classification', 'Part Classification')
 
-        with st.container(border=True):
-            st.subheader("(4/6) Distance & Inventory Norms")
-            current_pincode = st.text_input("Enter your current pincode for distance calculation", value="411001", help="Default is Pune")
-            if st.button("Run Location-Based Norms"):
-                with st.spinner("Calculating distances and inventory norms... This may take a while."):
-                    processor.run_location_based_norms("Pune", current_pincode)
-                    st.success(f"✅ Inventory norms calculated for location.")
-            # FIX: Only show review if the column exists (THIS IS THE LINE THAT CRASHED)
+        # Step 4: Distance & Inventory Norms
+        with st.container():
+            st.markdown("""
+            <div class="process-step">
+                <h3>🗺️ Step 4: Distance & Inventory Norms</h3>
+                <p>Calculate vendor distances and determine inventory requirements</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                current_pincode = st.text_input("📍 Your facility pincode", value="411001", help="Enter your current location pincode for distance calculations")
+                
+                if st.button("🔄 Calculate Inventory Norms", key="distance_btn", use_container_width=True):
+                    with st.spinner("🌍 Calculating distances and inventory norms... This may take several minutes."):
+                        processor.run_location_based_norms("Current Location", current_pincode)
+                        create_info_card("Calculation Complete", "Distance calculations and inventory norms have been established.", "success")
+            
+            with col2:
+                if 'DISTANCE CODE' in processor.data.columns:
+                    distances = processor.data['DISTANCE CODE'].value_counts()
+                    st.metric("Distance Codes", len(distances))
+            
             if 'inventory_classification' in processor.data.columns:
-                st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Norms')
+                st.session_state.processor.data = manual_review_step(processor.data, 'inventory_classification', 'Inventory Classification')
 
-        with st.container(border=True):
-            st.subheader("(5/6) Warehouse Location Assignment")
-            if st.button("Run Warehouse Location Assignment"):
-                with st.spinner("Running..."):
-                    processor.run_warehouse_location_assignment()
-                    st.success("✅ Automated warehouse location assignment complete.")
-            # FIX: Only show review if the column exists
+        # Step 5: Warehouse Location Assignment
+        with st.container():
+            st.markdown("""
+            <div class="process-step">
+                <h3>🏪 Step 5: Warehouse Location Assignment</h3>
+                <p>Assign optimal warehouse locations based on part characteristics</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                if st.button("🔄 Assign Warehouse Locations", key="warehouse_btn", use_container_width=True):
+                    with st.spinner("Optimizing warehouse assignments..."):
+                        processor.run_warehouse_location_assignment()
+                        create_info_card("Assignment Complete", "Warehouse locations have been assigned successfully.", "success")
+            
+            with col2:
+                if 'wh_loc' in processor.data.columns:
+                    locations = processor.data['wh_loc'].value_counts()
+                    st.metric("Warehouse Locations", len(locations))
+            
             if 'wh_loc' in processor.data.columns:
                 st.session_state.processor.data = manual_review_step(processor.data, 'wh_loc', 'Warehouse Location')
 
-        # (Step 6/6) Final Report Generation
-        st.header("(6/6) FINAL REPORT")
-        if st.button("✅ Generate Formatted Excel Report"):
-            with st.spinner("Generating your Excel report..."):
-                excel_data = create_formatted_excel_output(processor.data)
-                st.success("Report generated successfully!")
-                st.download_button(
-                    label="📥 Download Excel Report",
-                    data=excel_data,
-                    file_name="structured_inventory_data_final.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                st.balloons()
-        st.markdown("---")
-        st.markdown("🎉 **End-to-end process complete!**")
+        # Final step indicator
+        create_step_indicator(6, 6)
+
+        # Step 6: Final Report Generation
+        st.markdown('<h2 class="section-header">📊 Final Report Generation</h2>', unsafe_allow_html=True)
+        
+        with st.container():
+            st.markdown("""
+            <div class="step-container">
+                <h3>🎉 Generate Comprehensive PFEP Report</h3>
+                <p>Create your final formatted Excel report with all classifications and analysis results.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Final summary metrics
+            if hasattr(processor, 'data'):
+                summary_data = processor.data
+                
+                # Calculate completion metrics
+                family_complete = 'family' in summary_data.columns
+                size_complete = 'size_classification' in summary_data.columns
+                part_complete = 'part_classification' in summary_data.columns
+                distance_complete = 'inventory_classification' in summary_data.columns
+                warehouse_complete = 'wh_loc' in summary_data.columns
+                
+                completion_count = sum([family_complete, size_complete, part_complete, distance_complete, warehouse_complete])
+                completion_percent = (completion_count / 5) * 100
+                
+                # Display completion status
+                st.markdown("**🎯 Processing Status:**")
+                progress_col1, progress_col2 = st.columns([3, 1])
+                
+                with progress_col1:
+                    st.progress(completion_percent / 100)
+                with progress_col2:
+                    st.metric("Completion", f"{completion_percent:.0f}%")
+                
+                # Status indicators for each step
+                status_cols = st.columns(5)
+                statuses = [
+                    ("Family", family_complete),
+                    ("Size", size_complete), 
+                    ("Part Class", part_complete),
+                    ("Inventory", distance_complete),
+                    ("Warehouse", warehouse_complete)
+                ]
+                
+                for i, (name, complete) in enumerate(statuses):
+                    with status_cols[i]:
+                        status_icon = "✅" if complete else "⏳"
+                        st.markdown(f"**{status_icon} {name}**")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Generate report button
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    if st.button("📥 Generate Final Excel Report", key="final_report_btn", use_container_width=True):
+                        with st.spinner("🔄 Generating your comprehensive Excel report..."):
+                            excel_data = create_formatted_excel_output(processor.data)
+                            
+                            # Success animation and download
+                            st.balloons()
+                            create_info_card("Report Ready!", "Your comprehensive PFEP analysis report has been generated successfully.", "success")
+                            
+                            # Download button with custom styling
+                            st.download_button(
+                                label="📥 Download Excel Report",
+                                data=excel_data,
+                                file_name="PFEP_Analysis_Report.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True
+                            )
+                
+                # Final analytics summary
+                if completion_percent > 50:
+                    st.markdown('<h3 class="section-header">📈 Analysis Summary</h3>', unsafe_allow_html=True)
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        total_parts = len(summary_data)
+                        st.markdown(f"""
+                        <div class="metric-card">
+                            <h4>Total Parts Analyzed</h4>
+                            <h2>{total_parts:,}</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        if 'family' in summary_data.columns:
+                            unique_families = summary_data['family'].nunique()
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4>Part Families</h4>
+                                <h2>{unique_families}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    with col3:
+                        if 'wh_loc' in summary_data.columns:
+                            warehouse_locations = summary_data['wh_loc'].nunique()
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4>Warehouse Locations</h4>
+                                <h2>{warehouse_locations}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    with col4:
+                        if 'net_daily_consumption' in summary_data.columns:
+                            total_consumption = summary_data['net_daily_consumption'].sum()
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4>Daily Consumption</h4>
+                                <h2>{total_consumption:,.0f}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    # Distribution charts if data is available
+                    if family_complete:
+                        with st.expander("📊 Family Distribution Analysis", expanded=False):
+                            family_counts = summary_data['family'].value_counts().head(10)
+                            st.bar_chart(family_counts)
+                    
+                    if part_complete:
+                        with st.expander("💰 Part Classification Distribution", expanded=False):
+                            class_counts = summary_data['part_classification'].value_counts()
+                            st.bar_chart(class_counts)
+
+        # Footer
+        st.markdown("""
+        <div class="footer">
+            <h3>🎉 PFEP Analysis Complete!</h3>
+            <p>Your comprehensive Plan For Each Part analysis has been completed successfully.</p>
+            <p><strong>Next Steps:</strong> Review your Excel report and implement the warehouse location and inventory recommendations.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
