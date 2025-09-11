@@ -458,19 +458,36 @@ def main():
 
     initialize_session_state()
 
-    # --- SIDEBAR FOR SETUP AND CONTROLS ---
+    # --- SIDEBAR FOR PROGRESS TRACKING ONLY ---
     with st.sidebar:
-        st.header("⚙️ Setup & Configuration")
+        st.header("📊 Progress Tracker")
+        
+        status = st.session_state.step_completion
+        st.markdown(f"{'✅' if status['consolidated'] else '⬜'} **Data Consolidation**")
+        st.markdown("---")
+        st.markdown(f"{'✅' if status['family'] else '⬜'} 1. Family Classification")
+        st.markdown(f"{'✅' if status['size'] else '⬜'} 2. Size Classification")
+        st.markdown(f"{'✅' if status['part'] else '⬜'} 3. Part Classification")
+        st.markdown(f"{'✅' if status['inventory'] else '⬜'} 4. Inventory Norms")
+        st.markdown(f"{'✅' if status['warehouse'] else '⬜'} 5. Warehouse Location")
 
-        st.subheader("1. Upload Data Files")
-        pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
-        mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
-        vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
+    # --- MAIN PANEL FOR SETUP AND WORKFLOW ---
+    
+    # STEP 1: Setup and Data Consolidation in an expander
+    with st.expander("STEP 1: Setup & Data Consolidation", expanded=not st.session_state.step_completion['consolidated']):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("📁 Upload Data Files")
+            pbom_files = st.file_uploader("Upload PBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='pbom')
+            mbom_files = st.file_uploader("Upload MBOM files", accept_multiple_files=True, type=['csv', 'xlsx'], key='mbom')
+            vendor_file = st.file_uploader("Upload Vendor Master file", type=['csv', 'xlsx'], key='vendor')
+        
+        with col2:
+            st.subheader("⚙️ Set Parameters")
+            daily_mult_1 = st.number_input("Daily Qty - Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
+            daily_mult_2 = st.number_input("Daily Qty - Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
 
-        st.subheader("2. Set Daily Consumption")
-        daily_mult_1 = st.number_input("Daily Qty - Vehicle Type 1", min_value=0.0, value=1.0, step=0.1)
-        daily_mult_2 = st.number_input("Daily Qty - Vehicle Type 2", min_value=0.0, value=1.0, step=0.1)
-
+        st.divider()
         if st.button("▶️ Start Data Consolidation", type="primary", use_container_width=True):
             if not pbom_files and not mbom_files:
                 st.error("Upload at least one BOM file to start.")
@@ -479,40 +496,28 @@ def main():
                     bom_files = {"PBOM": pbom_files, "MBOM": mbom_files}
                     master_df, logs = consolidate_data(bom_files, vendor_file, daily_mult_1, daily_mult_2)
                     
-                    # Store logs in session state to display in main panel
                     st.session_state.logs = logs
                     
                     if master_df is not None:
                         st.session_state.processor = ComprehensiveInventoryProcessor(master_df.loc[:, ~master_df.columns.duplicated()])
                         st.session_state.step_completion['consolidated'] = True
-                        st.success("Consolidation Complete!")
+                        st.success("Consolidation Complete! You can now collapse this section and proceed below.")
+                        st.rerun() # Rerun to update the UI state
                     else:
-                        st.error("Consolidation Failed.")
+                        st.error("Consolidation Failed. Check logs below.")
         
-        st.divider()
-        st.header("📊 Progress Tracker")
-        
-        # Displaying the status of each step
-        status = st.session_state.step_completion
-        st.markdown(f"{'✅' if status['consolidated'] else '⬜'} Data Consolidation")
-        st.markdown(f"{'✅' if status['family'] else '⬜'} 1. Family Classification")
-        st.markdown(f"{'✅' if status['size'] else '⬜'} 2. Size Classification")
-        st.markdown(f"{'✅' if status['part'] else '⬜'} 3. Part Classification")
-        st.markdown(f"{'✅' if status['inventory'] else '⬜'} 4. Inventory Norms")
-        st.markdown(f"{'✅' if status['warehouse'] else '⬜'} 5. Warehouse Location")
-
-    # --- MAIN PANEL FOR WORKFLOW AND RESULTS ---
-    if not st.session_state.step_completion['consolidated']:
-        st.info("Welcome! Please upload your data files and start the consolidation process using the sidebar.", icon="👋")
-        # Display logs if they exist from a failed attempt
-        if 'logs' in st.session_state:
-            st.subheader("Last Consolidation Log:")
+        # Display logs if they exist
+        if 'logs' in st.session_state and st.session_state.logs:
+            st.subheader("Consolidation Log:")
             for log in st.session_state.logs:
                 st.text(log)
-    else:
+
+
+    # STEP 2-6: The rest of the workflow
+    if st.session_state.step_completion['consolidated']:
         processor = st.session_state.processor
-        st.header("🚀 Processing Workflow")
-        st.success("Data consolidated successfully! Proceed with the classification steps below.")
+        st.header("🚀 STEP 2: Processing Workflow")
+        st.success("Data is ready! Proceed with the classification steps below. A preview of your data is shown.")
         st.dataframe(processor.data.head(), use_container_width=True)
         
         # --- Grid Layout for Processing Steps ---
@@ -537,7 +542,6 @@ def main():
                         st.session_state.step_completion['part'] = True
                         st.success("Part classification complete.")
                 if st.session_state.step_completion['part']:
-                    # Display classification ranges
                     st.write("**Calculated Price Ranges:**")
                     range_cols = st.columns(len(processor.classifier.calculated_ranges))
                     for idx, (class_name, info) in enumerate(processor.classifier.calculated_ranges.items()):
@@ -580,10 +584,10 @@ def main():
 
         # --- Final Report Generation ---
         st.divider()
-        st.header("📥 Step 6: Generate Final Report")
+        st.header("🏆 STEP 3: Generate Final Report")
         
-        all_steps_done = all(st.session_state.step_completion.values())
-        
+        all_steps_done = all(value for key, value in st.session_state.step_completion.items() if key != 'consolidated')
+
         if not all_steps_done:
             st.warning("Please complete all processing steps (1-5) to generate the final report.")
         
@@ -599,6 +603,8 @@ def main():
                     use_container_width=True
                 )
                 st.balloons()
+    else:
+        st.info("Welcome! Please upload your data files and start the consolidation process in the section above to begin.", icon="👋")
 
 if __name__ == "__main__":
     main()
